@@ -1,0 +1,92 @@
+---
+description: Etebase error codes and handling - must match Python exactly
+globs:
+  - "pkg/errors/**/*.go"
+  - "internal/handler/**/*.go"
+alwaysApply: false
+---
+
+# Error Handling
+
+## Error Response Format
+
+All errors must be MessagePack:
+
+```go
+type EtebaseError struct {
+    Code   string `msgpack:"code"`
+    Detail string `msgpack:"detail"`
+    Field  string `msgpack:"field,omitempty"`
+}
+```
+
+## Standard Error Codes
+
+### Authentication Errors
+
+| Code | Detail | HTTP |
+|------|--------|------|
+| `user_not_found` | User not found | 401 |
+| `user_not_init` | User not properly init | 401 |
+| `login_bad_signature` | Wrong password for user. | 401 |
+| `wrong_action` | Expected "X" but got something else | 400 |
+| `challenge_expired` | Login challenge has expired | 400 |
+| `wrong_user` | This challenge is for the wrong user | 400 |
+| `wrong_host` | Found wrong host name | 400 |
+| `user_exists` | User already exists | 409 |
+
+### Collection Errors
+
+| Code | Detail | HTTP |
+|------|--------|------|
+| `bad_stoken` | Invalid stoken. | 400 |
+| `stale_stoken` | Stoken is too old | 409 |
+| `wrong_etag` | Wrong etag. Expected X got Y | 409 |
+| `unique_uid` | Collection with this uid already exists | 409 |
+
+### Permission Errors
+
+| Code | Detail | HTTP |
+|------|--------|------|
+| `admin_access_required` | Only collection admins can perform this operation. | 403 |
+| `no_write_access` | You need write access to write to this collection | 403 |
+
+### Chunk Errors
+
+| Code | Detail | HTTP |
+|------|--------|------|
+| `chunk_exists` | Chunk already exists. | 409 |
+| `chunk_no_content` | Tried to create a new chunk without content | 400 |
+
+## Go Implementation
+
+```go
+package errors
+
+var (
+    ErrUserNotFound = &EtebaseError{
+        Code: "user_not_found", 
+        Detail: "User not found", 
+        StatusCode: 401,
+    }
+    ErrBadSignature = &EtebaseError{
+        Code: "login_bad_signature", 
+        Detail: "Wrong password for user.", 
+        StatusCode: 401,
+    }
+)
+```
+
+## Handler Error Handling
+
+```go
+func (h *Handler) handleError(c *gin.Context, err error) {
+    var eteErr *errors.EtebaseError
+    if errors.As(err, &eteErr) {
+        packed, _ := msgpack.Marshal(eteErr)
+        c.Data(eteErr.StatusCode, "application/msgpack", packed)
+        return
+    }
+    c.Status(http.StatusInternalServerError)
+}
+```

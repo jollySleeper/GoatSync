@@ -1,0 +1,91 @@
+---
+description: GoatSync API routes reference - all endpoints must match Python exactly
+globs:
+  - "internal/handler/**/*.go"
+  - "internal/server/**/*.go"
+  - "api/routes/**/*.go"
+alwaysApply: false
+---
+
+# API Routes Reference
+
+All routes under: `/api/v1/`
+
+## Authentication Routes
+
+```
+/api/v1/authentication/
+├── GET  /is_etebase/           → Returns 200 OK (empty)
+├── POST /login_challenge/      → Returns {salt, challenge, version}
+├── POST /login/                → Returns {token, user}
+├── POST /logout/               → Returns 204 (requires auth)
+├── POST /change_password/      → Returns 204 (requires auth)
+├── POST /signup/               → Returns {token, user}
+└── POST /dashboard_url/        → Returns {url} (requires auth)
+```
+
+## Collection Routes
+
+```
+/api/v1/collection/
+├── GET  /                      → List collections (requires auth)
+├── POST /                      → Create collection (requires auth)
+├── POST /list_multi/           → List by types (requires auth)
+└── GET  /{collection_uid}/     → Get collection (requires auth)
+```
+
+## Item Routes (under collection)
+
+```
+/api/v1/collection/{collection_uid}/
+├── GET  /item/                           → List items
+├── GET  /item/{item_uid}/                → Get item
+├── GET  /item/{item_uid}/revision/       → List revisions
+├── POST /item/subscription-ticket/       → Get WebSocket ticket
+├── POST /item/fetch_updates/             → Get changed items
+├── POST /item/transaction/               → Atomic update (validates etag)
+├── POST /item/batch/                     → Batch update (no etag check)
+├── PUT  /item/{item_uid}/chunk/{chunk_uid}/         → Upload chunk
+└── GET  /item/{item_uid}/chunk/{chunk_uid}/download/ → Download chunk
+```
+
+## Member Routes (under collection)
+
+```
+/api/v1/collection/{collection_uid}/
+├── GET    /member/             → List members (admin only)
+├── DELETE /member/{username}/  → Remove member (admin only)
+├── PATCH  /member/{username}/  → Update access level (admin only)
+└── POST   /member/leave/       → Leave collection
+```
+
+## Invitation Routes
+
+```
+/api/v1/invitation/incoming/
+├── GET    /                        → List incoming invitations
+├── GET    /{invitation_uid}/       → Get invitation
+├── DELETE /{invitation_uid}/       → Reject invitation
+└── POST   /{invitation_uid}/accept/→ Accept invitation
+
+/api/v1/invitation/outgoing/
+├── GET    /                        → List sent invitations
+├── POST   /                        → Create invitation (admin only)
+├── DELETE /{invitation_uid}/       → Cancel invitation
+└── GET    /fetch_user_profile/     → Get user's pubkey
+```
+
+## WebSocket Route
+
+```
+/api/v1/ws/{ticket}/               → WebSocket connection
+```
+
+## Common Query Parameters
+
+| Param | Description |
+|-------|-------------|
+| `stoken` | Sync token for pagination |
+| `limit` | Max items (default: 50) |
+| `prefetch` | `auto` to include chunk data |
+| `iterator` | Cursor for pagination |

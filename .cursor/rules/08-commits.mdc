@@ -1,0 +1,59 @@
+---
+description: Git commit conventions for GoatSync migration
+globs: 
+alwaysApply: false
+---
+
+# Git Commit Convention
+
+## Format
+
+```
+<type>(<scope>): <description>
+```
+
+## Types
+
+| Type | Description |
+|------|-------------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `refactor` | Code change (no feature/fix) |
+| `docs` | Documentation only |
+| `test` | Adding or fixing tests |
+| `chore` | Maintenance (deps, config) |
+
+## Scopes
+
+| Scope | Area |
+|-------|------|
+| `auth` | Authentication |
+| `collection` | Collections |
+| `item` | Items/revisions |
+| `member` | Members |
+| `invitation` | Invitations |
+| `crypto` | Cryptography |
+| `db` | Database/GORM |
+| `model` | Domain models |
+| `repo` | Repository layer |
+| `service` | Service layer |
+| `handler` | HTTP handlers |
+
+## Examples
+
+```bash
+feat(auth): implement login challenge with BLAKE2b
+feat(model): add Collection and CollectionType GORM models
+fix(crypto): correct secretbox nonce handling
+refactor(repo): extract stoken queries to dedicated file
+docs: update API route documentation
+chore(deps): upgrade gorm to v1.25.5
+```
+
+## Breaking Changes
+
+```
+refactor(model)!: rename Collection.MainItem to MainItemID
+
+BREAKING CHANGE: Collection model field renamed.
+```

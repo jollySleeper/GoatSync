@@ -1,0 +1,116 @@
+---
+description: GORM model definitions matching Django schema exactly
+globs:
+  - "internal/model/**/*.go"
+  - "internal/models/**/*.go"
+alwaysApply: false
+---
+
+# GORM Models Reference
+
+## Model Overview
+
+| Model | Key Relations |
+|-------|---------------|
+| User | has one UserInfo |
+| UserInfo | belongs to User |
+| Stoken | referenced by many |
+| Collection | has one main_item, has many members |
+| CollectionType | belongs to User |
+| CollectionItem | belongs to Collection |
+| CollectionItemRevision | belongs to Item, has one Stoken |
+| CollectionMember | belongs to Collection, User |
+| CollectionInvitation | belongs to Member, User |
+
+## Stoken Model (CREATE FIRST)
+
+```go
+type Stoken struct {
+    ID  uint   `gorm:"primaryKey"`
+    UID string `gorm:"uniqueIndex;size:43;not null"`
+}
+
+func (s *Stoken) BeforeCreate(tx *gorm.DB) error {
+    if s.UID == "" {
+        s.UID = generateStokenUID()
+    }
+    return nil
+}
+```
+
+## User Models
+
+```go
+type User struct {
+    ID        uint      `gorm:"primaryKey"`
+    Username  string    `gorm:"uniqueIndex;size:150;not null"`
+    Email     string    `gorm:"uniqueIndex;size:254;not null"`
+    FirstName string    `gorm:"size:150"`
+    CreatedAt time.Time `gorm:"autoCreateTime"`
+    UpdatedAt time.Time `gorm:"autoUpdateTime"`
+    UserInfo  *UserInfo `gorm:"foreignKey:OwnerID;constraint:OnDelete:CASCADE"`
+}
+
+type UserInfo struct {
+    OwnerID          uint   `gorm:"primaryKey"`
+    Version          int    `gorm:"default:1"`
+    LoginPubkey      []byte `gorm:"type:bytea;not null"`
+    Pubkey           []byte `gorm:"type:bytea;not null"`
+    EncryptedContent []byte `gorm:"type:bytea;not null"`
+    Salt             []byte `gorm:"type:bytea;not null"`
+}
+```
+
+## Collection Models
+
+```go
+type Collection struct {
+    ID         uint            `gorm:"primaryKey"`
+    UID        string          `gorm:"uniqueIndex;size:43;not null"`
+    OwnerID    uint            `gorm:"not null"`
+    MainItemID *uint           `gorm:"unique"`
+    MainItem   *CollectionItem `gorm:"foreignKey:MainItemID"`
+}
+
+type CollectionItem struct {
+    ID            uint   `gorm:"primaryKey"`
+    UID           string `gorm:"size:43;not null;index"`
+    CollectionID  uint   `gorm:"not null"`
+    Version       uint16 `gorm:"not null"`
+    EncryptionKey []byte `gorm:"type:bytea"`
+}
+
+type CollectionItemRevision struct {
+    ID       uint   `gorm:"primaryKey"`
+    UID      string `gorm:"uniqueIndex;size:43;not null"`
+    ItemID   uint   `gorm:"not null"`
+    StokenID uint   `gorm:"unique"`
+    Meta     []byte `gorm:"type:bytea;not null"`
+    Current  *bool  `gorm:"index"`
+    Deleted  bool   `gorm:"default:false"`
+}
+```
+
+## Member Models
+
+```go
+type CollectionMember struct {
+    ID               uint   `gorm:"primaryKey"`
+    CollectionID     uint   `gorm:"not null"`
+    UserID           uint   `gorm:"not null"`
+    StokenID         *uint
+    EncryptionKey    []byte `gorm:"type:bytea;not null"`
+    CollectionTypeID *uint
+    AccessLevel      int    `gorm:"default:0"` // 0=ReadOnly, 1=Admin, 2=ReadWrite
+}
+```
+
+## Access Levels
+
+```go
+const (
+    AccessLevelReadOnly  = 0
+    AccessLevelAdmin     = 1
+    AccessLevelReadWrite = 2
+)
+```

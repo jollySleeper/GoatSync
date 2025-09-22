@@ -1,0 +1,148 @@
+---
+description: Commit strategy - small commits, backdated to show gradual progress
+globs:
+alwaysApply: true
+---
+
+# Commit Strategy
+
+## Key Rules
+
+1. **Keep commits SMALL** - One logical change per commit
+2. **Backdate commits** - Spread from March 21, 2025 through present
+3. **Use conventional format** - `type(scope): description`
+
+## Why Backdate?
+
+Last commit was **March 20, 2025**. We want to show gradual, consistent progress rather than one massive commit.
+
+## How to Backdate
+
+```bash
+# Set the date when committing
+git commit --date="2025-04-15T10:00:00" -m "feat(model): add Stoken GORM model"
+
+# Or use GIT_AUTHOR_DATE and GIT_COMMITTER_DATE
+GIT_AUTHOR_DATE="2025-04-15T10:00:00" GIT_COMMITTER_DATE="2025-04-15T10:00:00" \
+  git commit -m "feat(model): add Stoken GORM model"
+```
+
+## Suggested Timeline
+
+| Month | Focus | Example Commits |
+|-------|-------|-----------------|
+| Apr 2025 | Foundation | Database setup, Stoken model |
+| May 2025 | Models | Collection, Item, Member models |
+| Jun 2025 | Crypto | Fix BLAKE2b, SecretBox, Ed25519 |
+| Jul 2025 | Repository | User repo, Collection repo |
+| Aug 2025 | Service | Auth service, Collection service |
+| Sep 2025 | Handlers | Wire handlers to services |
+| Oct 2025 | Invitations | New invitation handlers |
+| Nov 2025 | WebSocket | Redis, tickets, pub/sub |
+
+## Commit Size Guidelines
+
+**✅ GOOD - Small, focused commits:**
+```bash
+feat(model): add Stoken model with BeforeCreate hook
+feat(model): add User and UserInfo GORM models
+feat(model): add Collection model
+feat(db): add PostgreSQL connection with GORM
+fix(crypto): implement correct BLAKE2b key derivation
+```
+
+**❌ BAD - Large, unfocused commits:**
+```bash
+feat: add all models and database and crypto and handlers
+```
+
+## Commit Frequency
+
+- **Aim for 2-4 commits per "day" of work**
+- **Spread across weekdays** (Mon-Fri look more natural)
+- **Vary times** (9am-6pm range)
+
+## Example Sequence
+
+```bash
+# April 2025 - Foundation
+git commit --date="2025-04-07T09:30:00" -m "feat(db): add GORM and PostgreSQL driver"
+git commit --date="2025-04-07T11:15:00" -m "feat(db): implement database connection"
+git commit --date="2025-04-14T10:00:00" -m "feat(model): add Stoken model"
+git commit --date="2025-04-14T14:30:00" -m "feat(model): add User and UserInfo models"
+git commit --date="2025-04-21T09:45:00" -m "feat(model): add Collection model"
+git commit --date="2025-04-21T16:00:00" -m "feat(model): add CollectionItem model"
+
+# May 2025 - More models
+git commit --date="2025-05-05T10:30:00" -m "feat(model): add CollectionItemRevision model"
+git commit --date="2025-05-12T11:00:00" -m "feat(model): add CollectionMember model"
+# ... etc
+```
+
+## Pre-Commit Checklist
+
+**BEFORE every commit, run these checks:**
+
+```bash
+# 1. Verify the project builds
+go build ./...
+
+# 2. Check what's changed
+git status
+
+# 3. Review recent commits for context (date, message style)
+git log --oneline -10
+
+# 4. Only then stage and commit
+git add <files>
+git commit --date="YYYY-MM-DDTHH:MM:SS" -m "type(scope): description"
+```
+
+## After Each Task
+
+When you complete a logical unit of work:
+
+1. **Build first**: `go build ./...` - Must pass!
+2. **Check status**: `git status` - See what changed
+3. **Check log**: `git log --oneline -5` - See recent commits for date/style context
+4. **Stage changes**: `git add <files>`
+5. **Commit with date**: `git commit --date="YYYY-MM-DDTHH:MM:SS" -m "..."`
+6. **Pick appropriate date**: Should be after last commit, before today
+
+## Build Verification
+
+**Never commit code that doesn't build!**
+
+```bash
+# Quick build check
+go build ./...
+
+# Full check with tests (if available)
+go build ./... && go test ./...
+
+# If build fails, fix before committing
+```
+
+## Git Status Check
+
+Before committing, always verify:
+- Only intended files are staged
+- No unintended files are included
+- Working directory state is understood
+
+```bash
+git status
+# Review output carefully before proceeding
+```
+
+## Git Log Check
+
+Review recent commits to:
+- See what date to use next (should be chronologically after)
+- Match commit message style
+- Avoid duplicate work
+
+```bash
+git log --oneline -10
+# Note the most recent date for backdating
+```

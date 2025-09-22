@@ -1,0 +1,100 @@
+---
+description: Stoken sync system - the core of EteSync's sync protocol
+globs:
+  - "internal/repository/**/*.go"
+  - "internal/service/**/*.go"
+alwaysApply: false
+---
+
+# Stoken System (CRITICAL)
+
+## What is Stoken?
+
+Stoken (sync token) is the **core of EteSync's sync protocol**:
+
+1. Every modification creates a new `Stoken` record
+2. Clients send their last stoken to get changes
+3. Server returns items where stoken > client's stoken
+4. Response includes new stoken for client to store
+
+## How It Works
+
+```
+Client                                    Server
+  |-- GET /collection/?stoken=abc123 ----->|
+  |<-- {data: [...], stoken: "xyz789"} ----|
+  |-- GET /collection/?stoken=xyz789 ----->|
+  |<-- {data: [...], stoken: "new456"} ----|
+```
+
+## Stoken Annotation (Python)
+
+```python
+stoken_annotation = stoken_annotation_builder([
+    "items__revisions__stoken",
+    "members__stoken"
+])
+# Results in: MAX(COALESCE(items.revisions.stoken_id, 0), COALESCE(members.stoken_id, 0))
+```
+
+## Go Implementation
+
+### GetStokenObj
+
+```go
+func (r *StokenRepo) GetByUID(ctx context.Context, uid string) (*model.Stoken, error) {
+    if uid == "" {
+        return nil, nil
+    }
+    var stoken model.Stoken
+    err := r.db.WithContext(ctx).Where("uid = ?", uid).First(&stoken).Error
+    if errors.Is(err, gorm.ErrRecordNotFound) {
+        return nil, ErrBadStoken
+    }
+    return &stoken, err
+}
+```
+
+### FilterByStokenAndLimit
+
+```go
+func FilterByStokenAndLimit(db *gorm.DB, stokenUID string, limit int) (
+    results []interface{}, newStoken *model.Stoken, done bool, err error,
+) {
+    // 1. Get stoken object
+    // 2. Apply stoken filter (WHERE max_stoken > stoken.ID)
+    // 3. Fetch limit + 1 to check if done
+    // 4. Return results, new stoken, done flag
+}
+```
+
+## When to Create Stokens
+
+Create a new Stoken when:
+- Creating a collection item revision
+- Creating/updating a collection member
+- Removing a collection member
+
+```go
+func (r *ItemRepo) CreateRevision(ctx context.Context, rev *model.Revision) error {
+    return r.db.Transaction(func(tx *gorm.DB) error {
+        stoken := &model.Stoken{}
+        if err := tx.Create(stoken).Error; err != nil {
+            return err
+        }
+        rev.StokenID = stoken.ID
+        return tx.Create(rev).Error
+    })
+}
+```
+
+## Response Format
+
+```go
+type CollectionListResponse struct {
+    Data               []CollectionOut `msgpack:"data"`
+    Stoken             *string         `msgpack:"stoken,omitempty"`
+    Done               bool            `msgpack:"done"`
+    RemovedMemberships []RemovedOut    `msgpack:"removedMemberships,omitempty"`
+}
+```

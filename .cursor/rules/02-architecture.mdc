@@ -1,0 +1,87 @@
+---
+description: GoatSync architecture - clean architecture layers and dependency injection
+globs: 
+  - "internal/**/*.go"
+  - "cmd/**/*.go"
+alwaysApply: false
+---
+
+# Architecture Rules
+
+## Layer Structure
+
+```
+cmd/goatsync/main.go     → Entry point, DI wiring
+        ↓
+internal/server/         → HTTP server, route registration
+        ↓
+internal/handler/        → HTTP handlers (parse request, call service, format response)
+        ↓
+internal/service/        → Business logic (crypto, validation, orchestration)
+        ↓
+internal/repository/     → Data access (GORM queries, Redis, filesystem)
+        ↓
+internal/model/          → Domain models (GORM structs)
+```
+
+## Dependency Flow
+
+**Dependencies flow DOWN only:**
+- Handler depends on Service
+- Service depends on Repository
+- Repository depends on Model
+
+**Never:**
+- Model imports Handler
+- Repository imports Service
+- Handler imports Repository directly
+
+## Folder Structure
+
+```
+internal/
+├── config/           # Environment configuration
+├── crypto/           # Etebase crypto (BLAKE2b, SecretBox, Ed25519)
+├── database/         # GORM PostgreSQL connection
+├── model/            # GORM models
+├── repository/       # Data access layer
+├── service/          # Business logic
+├── handler/          # HTTP handlers
+├── middleware/       # HTTP middleware
+├── server/           # HTTP server setup
+└── storage/          # Chunk file storage
+```
+
+## Dependency Injection
+
+**Always use constructor injection:**
+
+```go
+// ✅ GOOD
+type AuthService struct {
+    userRepo  UserRepository
+    tokenRepo TokenRepository
+    crypto    *crypto.Etebase
+}
+
+func NewAuthService(ur UserRepository, tr TokenRepository, c *crypto.Etebase) *AuthService {
+    return &AuthService{userRepo: ur, tokenRepo: tr, crypto: c}
+}
+
+// ❌ BAD - Global state
+var userRepo = repository.NewUserRepository()
+```
+
+## Interface Placement
+
+Define interfaces **where they are consumed**, not where implemented:
+
+```go
+// In service/auth.go (consumer)
+type UserRepository interface {
+    GetByUsername(ctx context.Context, username string) (*model.User, error)
+}
+
+// In repository/user.go (implementation)
+type userRepo struct { db *gorm.DB }
+```

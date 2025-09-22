@@ -1,0 +1,53 @@
+---
+description: GoatSync project context - EteSync Python to Go migration
+globs: 
+alwaysApply: true
+---
+
+# GoatSync Project Context
+
+GoatSync is a **Go implementation of the EteSync server**.
+
+## Original EteSync Server (Python)
+- Location: `../eteSync-server/`
+- Framework: FastAPI + Django ORM
+- Crypto: NaCl/libsodium (BLAKE2b, SecretBox, Ed25519)
+- Serialization: MessagePack
+- Database: PostgreSQL
+
+## GoatSync (Go)
+- Framework: Gin + GORM
+- Crypto: golang.org/x/crypto (must match Python exactly)
+- Serialization: MessagePack (vmihailenco/msgpack)
+- Database: PostgreSQL
+
+## Migration Goal
+
+**100% API compatibility** with existing EteSync clients (etesync-dav, web, iOS, Android).
+
+## Current Status: ~8-10% complete
+
+| Done | Not Done |
+|------|----------|
+| Project structure | Database integration |
+| Route definitions | Correct crypto |
+| Handler stubs | Stoken system |
+| MessagePack codec | Business logic |
+
+## Key Python Files to Reference
+
+| Feature | Python File |
+|---------|-------------|
+| Auth | `eteSync-server/etebase_server/fastapi/routers/authentication.py` |
+| Collections | `eteSync-server/etebase_server/fastapi/routers/collection.py` |
+| Members | `eteSync-server/etebase_server/fastapi/routers/member.py` |
+| Invitations | `eteSync-server/etebase_server/fastapi/routers/invitation.py` |
+| Models | `eteSync-server/etebase_server/django/models.py` |
+| Stoken | `eteSync-server/etebase_server/fastapi/stoken_handler.py` |
+
+## Critical Constraints
+
+1. **All responses must be MessagePack** (not JSON)
+2. **Crypto must match Python byte-for-byte**
+3. **Error codes must match exactly** (e.g., `user_not_found`, `wrong_etag`)
+4. **Route paths must match exactly** (trailing slashes matter)

@@ -1,0 +1,82 @@
+---
+description: Etebase crypto implementation - BLAKE2b, SecretBox, Ed25519 (NOT bcrypt!)
+globs:
+  - "internal/crypto/**/*.go"
+  - "internal/handlers/user.go"
+  - "internal/handler/auth.go"
+  - "internal/service/auth.go"
+alwaysApply: false
+---
+
+# Crypto Implementation (CRITICAL)
+
+## ⚠️ WARNING: Current Code is WRONG
+
+The existing code uses **bcrypt** for password verification. EteSync uses **Ed25519 signatures**.
+
+**DO NOT use bcrypt anywhere in this project.**
+
+## Correct Algorithms
+
+| Purpose | Algorithm | Go Package |
+|---------|-----------|------------|
+| Key derivation | BLAKE2b-256 with key, salt, personalization | `golang.org/x/crypto/blake2b` |
+| Challenge encryption | XSalsa20-Poly1305 (SecretBox) | `golang.org/x/crypto/nacl/secretbox` |
+| Signature verification | Ed25519 | `crypto/ed25519` |
+| Random generation | Cryptographically secure | `crypto/rand` |
+
+## Key Derivation (Python Reference)
+
+```python
+def get_encryption_key(salt: bytes):
+    key = nacl.hash.blake2b(
+        settings.SECRET_KEY.encode(),
+        encoder=nacl.encoding.RawEncoder
+    )
+    return nacl.hash.blake2b(
+        b"",
+        key=key,
+        salt=salt[:nacl.hash.BLAKE2B_SALTBYTES],  # First 16 bytes
+        person=b"etebase-auth",
+        encoder=nacl.encoding.RawEncoder,
+    )
+```
+
+## Go Implementation
+
+### BLAKE2b with Key/Salt/Person
+
+```go
+import "golang.org/x/crypto/blake2b"
+
+h, err := blake2b.New(32, &blake2b.Config{
+    Size:   32,
+    Key:    key,
+    Salt:   salt[:16],
+    Person: []byte("etebase-auth"),
+})
+```
+
+### SecretBox
+
+```go
+import "golang.org/x/crypto/nacl/secretbox"
+
+// Encrypt
+var nonce [24]byte
+rand.Read(nonce[:])
+ciphertext := secretbox.Seal(nonce[:], plaintext, &nonce, &key)
+
+// Decrypt
+var decryptNonce [24]byte
+copy(decryptNonce[:], ciphertext[:24])
+plaintext, ok := secretbox.Open(nil, ciphertext[24:], &decryptNonce, &key)
+```
+
+### Ed25519
+
+```go
+import "crypto/ed25519"
+
+valid := ed25519.Verify(pubkey, message, signature)
+```
