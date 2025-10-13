@@ -23,7 +23,7 @@ const banner = `
 `
 
 func main () {
-    fmt.Println(banner)
+    fmt.Print(banner)
 
 	engine := gin.Default()
 	engine.GET("/is_etebase", isEtebase)
