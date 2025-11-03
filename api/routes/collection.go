@@ -1,4 +1,4 @@
-package handlers
+package routes
 
 import (
 	"errors"
@@ -842,4 +842,3 @@ func DownloadChunk(context *gin.Context) {
 
 	context.Status(http.StatusNotImplemented)
 }
-
