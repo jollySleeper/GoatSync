@@ -17,3 +17,7 @@ func NewDecoder(data io.Reader) Decoder {
 func Marshal(data any) ([]byte, error) {
 	return msgpack.Marshal(data)
 }
+
+func Unmarshal(data []byte, v any) error {
+	return msgpack.Unmarshal(data, v)
+}
