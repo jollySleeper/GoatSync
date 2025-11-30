@@ -126,6 +126,14 @@ func (s *Server) RegisterRoutes() {
 			incoming.DELETE("/:invitation_uid/", s.invitationHandler.RejectIncoming)
 			incoming.POST("/:invitation_uid/accept/", s.invitationHandler.AcceptIncoming)
 		}
+
+		// Outgoing invitations
+		outgoing := invitation.Group("/outgoing")
+		{
+			outgoing.GET("/", s.invitationHandler.ListOutgoing)
+			outgoing.DELETE("/:invitation_uid/", s.invitationHandler.DeleteOutgoing)
+			outgoing.POST("/fetch_user_profile/", s.invitationHandler.FetchUserForInvite)
+		}
 	}
 
 	// WebSocket route
