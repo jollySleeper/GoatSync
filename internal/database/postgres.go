@@ -55,9 +55,10 @@ func Connect(dsn string) (*gorm.DB, error) {
 
 	// Open database connection
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger:                 gormLogger,
-		SkipDefaultTransaction: true, // Performance optimization
-		PrepareStmt:            true, // Cache prepared statements
+		Logger:                                   gormLogger,
+		SkipDefaultTransaction:                   true, // Performance optimization
+		PrepareStmt:                              true, // Cache prepared statements
+		DisableForeignKeyConstraintWhenMigrating: true, // Handle circular dependencies
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
