@@ -56,7 +56,7 @@ func main() {
 			log.Printf("WARNING: Failed to connect to database: %v", err)
 			log.Println("Running in memory-only mode (data will not persist)")
 		} else {
-			// Run auto-migrations
+			// Run auto-migrations (FK constraints disabled in GORM config to handle circular deps)
 			if err := database.AutoMigrate(db,
 				&model.Stoken{},
 				&model.User{},
