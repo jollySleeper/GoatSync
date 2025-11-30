@@ -69,3 +69,21 @@ func (h *CollectionHandler) Get(c *gin.Context) {
 	h.RespondMsgpack(c, http.StatusOK, col)
 }
 
+// Create handles POST /api/v1/collection/
+func (h *CollectionHandler) Create(c *gin.Context) {
+	user := c.MustGet("user").(*model.User)
+
+	var req service.CollectionCreateRequest
+	if err := h.ParseMsgpack(c, &req); err != nil {
+		return
+	}
+
+	resp, err := h.collectionService.CreateCollection(c.Request.Context(), user.ID, &req)
+	if err != nil {
+		h.HandleError(c, err)
+		return
+	}
+
+	h.RespondMsgpack(c, http.StatusCreated, resp)
+}
+
