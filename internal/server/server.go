@@ -26,6 +26,7 @@ type Server struct {
 	chunkHandler      *handler.ChunkHandler
 	websocketHandler  *handler.WebSocketHandler
 	healthHandler     *handler.HealthHandler
+	testHandler       *handler.TestHandler
 }
 
 // New creates a new server instance
@@ -40,6 +41,7 @@ func New(
 	chunkHandler *handler.ChunkHandler,
 	websocketHandler *handler.WebSocketHandler,
 	healthHandler *handler.HealthHandler,
+	testHandler *handler.TestHandler,
 ) *Server {
 	// Set Gin mode based on config
 	if cfg.Debug {
@@ -67,6 +69,7 @@ func New(
 		chunkHandler:      chunkHandler,
 		websocketHandler:  websocketHandler,
 		healthHandler:     healthHandler,
+		testHandler:       testHandler,
 	}
 }
 
@@ -152,6 +155,14 @@ func (s *Server) RegisterRoutes() {
 	ws := api.Group("/ws")
 	{
 		ws.GET("/:ticket/", s.websocketHandler.Handle)
+	}
+
+	// Test routes (DEBUG mode only)
+	if s.cfg.Debug {
+		test := api.Group("/test")
+		{
+			test.POST("/authentication/reset/", s.testHandler.Reset)
+		}
 	}
 }
 
