@@ -76,6 +76,19 @@ func (r *invitationRepository) ListOutgoing(ctx context.Context, memberID uint) 
 	return invitations, err
 }
 
+// ListOutgoingByUser lists all outgoing invitations sent by a user
+func (r *invitationRepository) ListOutgoingByUser(ctx context.Context, userID uint) ([]model.CollectionInvitation, error) {
+	var invitations []model.CollectionInvitation
+	err := r.db.WithContext(ctx).
+		Preload("User").
+		Preload("FromMember").
+		Preload("FromMember.Collection").
+		Joins("JOIN django_collectionmember ON django_collectionmember.id = django_collectioninvitation.from_member_id").
+		Where("django_collectionmember.user_id = ?", userID).
+		Find(&invitations).Error
+	return invitations, err
+}
+
 // Delete deletes an invitation
 func (r *invitationRepository) Delete(ctx context.Context, id uint) error {
 	return r.db.WithContext(ctx).Delete(&model.CollectionInvitation{}, id).Error
