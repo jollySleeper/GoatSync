@@ -129,6 +129,7 @@ func main() {
 	chunkHandler := handler.NewChunkHandler(chunkService)
 	websocketHandler := handler.NewWebSocketHandler(redis)
 	healthHandler := handler.NewHealthHandler(db)
+	testHandler := handler.NewTestHandler(db, cfg.Debug)
 	log.Println("Handlers initialized")
 
 	// 10. Create and start server
@@ -143,6 +144,7 @@ func main() {
 		chunkHandler,
 		websocketHandler,
 		healthHandler,
+		testHandler,
 	)
 
 	// 11. Setup graceful shutdown
