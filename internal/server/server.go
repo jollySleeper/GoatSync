@@ -101,6 +101,7 @@ func (s *Server) RegisterRoutes() {
 		// Item routes (nested under collection)
 		collection.GET("/:collection_uid/item/", s.itemHandler.List)
 		collection.GET("/:collection_uid/item/:item_uid/", s.itemHandler.Get)
+		collection.GET("/:collection_uid/item/:item_uid/revision/", s.itemHandler.Revisions)
 		collection.POST("/:collection_uid/item/batch/", s.itemHandler.Batch)
 		collection.POST("/:collection_uid/item/transaction/", s.itemHandler.Transaction)
 		collection.POST("/:collection_uid/item/fetch_updates/", s.itemHandler.FetchUpdates)
