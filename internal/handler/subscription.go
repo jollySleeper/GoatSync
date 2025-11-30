@@ -39,7 +39,7 @@ func (h *SubscriptionHandler) GetTicket(c *gin.Context) {
 
 	// TODO: Verify user has access to collection
 	// For now, just create the ticket
-	ticket := h.wsHandler.CreateTicket(user.ID, 0) // TODO: Get collection ID
+	ticket := h.wsHandler.CreateTicket(c.Request.Context(), user.ID, 0) // TODO: Get collection ID
 
 	h.RespondMsgpack(c, http.StatusOK, TicketResponse{Ticket: ticket})
 }
