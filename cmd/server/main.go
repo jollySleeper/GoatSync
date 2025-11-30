@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"goatsync/internal/config"
 	"goatsync/internal/database"
@@ -140,8 +145,48 @@ func main() {
 		healthHandler,
 	)
 
-	log.Printf("Starting GoatSync server on port %s", cfg.Port)
-	if err := srv.Run(); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	// 11. Setup graceful shutdown
+	httpServer := &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: srv.Engine(),
 	}
+
+	// Start server in goroutine
+	go func() {
+		log.Printf("Starting GoatSync server on port %s", cfg.Port)
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
+
+	// Wait for interrupt signal
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	// Give outstanding requests 30 seconds to complete
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := httpServer.Shutdown(ctx); err != nil {
+		log.Printf("Server forced to shutdown: %v", err)
+	}
+
+	// Close Redis connection
+	if redis != nil {
+		if err := redis.Close(); err != nil {
+			log.Printf("Redis close error: %v", err)
+		}
+	}
+
+	// Close database connection
+	if db != nil {
+		sqlDB, err := db.DB()
+		if err == nil {
+			sqlDB.Close()
+		}
+	}
+
+	log.Println("Server exited gracefully")
 }
