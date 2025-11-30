@@ -131,6 +131,41 @@ type CollectionContent struct {
 	Chunks  []string `msgpack:"chunks,omitempty"`
 }
 
+// ListMultiRequest is the request for listing collections by types
+type ListMultiRequest struct {
+	CollectionTypes [][]byte `msgpack:"collectionTypes"`
+}
+
+// ListMultiCollections lists collections filtered by collection types
+func (s *CollectionService) ListMultiCollections(
+	ctx context.Context,
+	userID uint,
+	typeUIDs [][]byte,
+	stoken string,
+	limit int,
+) (*CollectionListResponse, error) {
+	collections, newStoken, done, err := s.collectionRepo.ListByTypes(ctx, userID, typeUIDs, stoken, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	data := make([]CollectionOut, len(collections))
+	for i, col := range collections {
+		data[i] = s.collectionToOut(&col)
+	}
+
+	var stokenStr *string
+	if newStoken != nil {
+		stokenStr = &newStoken.UID
+	}
+
+	return &CollectionListResponse{
+		Data:   data,
+		Stoken: stokenStr,
+		Done:   done,
+	}, nil
+}
+
 // CreateCollection creates a new collection
 func (s *CollectionService) CreateCollection(
 	ctx context.Context,
