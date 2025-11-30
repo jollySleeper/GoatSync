@@ -73,18 +73,9 @@ func (s *InvitationService) ListIncoming(ctx context.Context, userID uint) (*Inv
 	}, nil
 }
 
-// ListOutgoing lists outgoing invitations from a user
-func (s *InvitationService) ListOutgoing(ctx context.Context, collectionID, userID uint) (*InvitationListResponse, error) {
-	// Get member for this user
-	member, err := s.memberRepo.GetByUserAndCollection(ctx, userID, collectionID)
-	if err != nil {
-		return nil, err
-	}
-	if member == nil || !member.IsAdmin() {
-		return nil, pkgerrors.ErrAdminRequired
-	}
-
-	invitations, err := s.invitationRepo.ListOutgoing(ctx, member.ID)
+// ListOutgoing lists outgoing invitations sent by the user
+func (s *InvitationService) ListOutgoing(ctx context.Context, userID uint) (*InvitationListResponse, error) {
+	invitations, err := s.invitationRepo.ListOutgoingByUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -99,11 +90,52 @@ func (s *InvitationService) ListOutgoing(ctx context.Context, collectionID, user
 		if inv.User != nil {
 			data[i].Username = inv.User.Username
 		}
+		if inv.FromMember != nil && inv.FromMember.Collection != nil {
+			data[i].CollectionUID = inv.FromMember.Collection.UID
+		}
 	}
 
 	return &InvitationListResponse{
 		Data: data,
 		Done: true,
+	}, nil
+}
+
+// DeleteOutgoing deletes an outgoing invitation
+func (s *InvitationService) DeleteOutgoing(ctx context.Context, uid string, userID uint) error {
+	inv, err := s.invitationRepo.GetByUID(ctx, uid)
+	if err != nil {
+		return err
+	}
+	if inv == nil {
+		return pkgerrors.ErrNotMember
+	}
+
+	// Verify the user is the one who sent it
+	if inv.FromMember == nil || inv.FromMember.UserID != userID {
+		return pkgerrors.ErrAdminRequired
+	}
+
+	return s.invitationRepo.Delete(ctx, inv.ID)
+}
+
+// UserProfileOut represents user profile info for invitations
+type UserProfileOut struct {
+	Pubkey []byte `msgpack:"pubkey"`
+}
+
+// FetchUserForInvite fetches a user's public key for sending an invitation
+func (s *InvitationService) FetchUserForInvite(ctx context.Context, username string) (*UserProfileOut, error) {
+	user, err := s.userRepo.GetByUsername(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil || user.UserInfo == nil {
+		return nil, pkgerrors.ErrUserNotFound
+	}
+
+	return &UserProfileOut{
+		Pubkey: user.UserInfo.Pubkey,
 	}, nil
 }
 
