@@ -64,6 +64,21 @@ func (r *memberRepository) GetByUserAndCollection(ctx context.Context, userID, c
 	return &member, err
 }
 
+// GetByUsernameAndCollection retrieves a member by username and collection ID
+func (r *memberRepository) GetByUsernameAndCollection(ctx context.Context, username string, collectionID uint) (*model.CollectionMember, error) {
+	var member model.CollectionMember
+	err := r.db.WithContext(ctx).
+		Preload("User").
+		Joins("JOIN myauth_user ON myauth_user.id = django_collectionmember.user_id").
+		Where("myauth_user.username = ? AND collection_id = ?", username, collectionID).
+		First(&member).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &member, err
+}
+
 // ListForCollection lists all members of a collection
 func (r *memberRepository) ListForCollection(ctx context.Context, collectionID uint) ([]model.CollectionMember, error) {
 	var members []model.CollectionMember
