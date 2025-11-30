@@ -71,3 +71,33 @@ func (h *MemberHandler) Leave(c *gin.Context) {
 	h.RespondEmpty(c, http.StatusNoContent)
 }
 
+// ModifyMemberRequest is the request body for modifying a member
+type ModifyMemberRequest struct {
+	AccessLevel string `msgpack:"accessLevel"`
+}
+
+// Modify handles PATCH /api/v1/collection/:collection_uid/member/:username/
+func (h *MemberHandler) Modify(c *gin.Context) {
+	user := c.MustGet("user").(*model.User)
+	collectionUID := c.Param("collection_uid")
+	username := c.Param("username")
+
+	if username == "" {
+		h.HandleError(c, pkgerrors.ErrInvalidRequest.WithDetail("missing username"))
+		return
+	}
+
+	var req ModifyMemberRequest
+	if err := h.ParseMsgpack(c, &req); err != nil {
+		return
+	}
+
+	err := h.memberService.ModifyMember(c.Request.Context(), collectionUID, username, user.ID, req.AccessLevel)
+	if err != nil {
+		h.HandleError(c, err)
+		return
+	}
+
+	h.RespondEmpty(c, http.StatusNoContent)
+}
+
