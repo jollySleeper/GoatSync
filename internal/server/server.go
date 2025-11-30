@@ -3,6 +3,7 @@ package server
 
 import (
 	"log"
+	"net/http"
 
 	"goatsync/internal/config"
 	"goatsync/internal/handler"
@@ -154,7 +155,13 @@ func (s *Server) RegisterRoutes() {
 	}
 }
 
-// Run starts the HTTP server
+// Engine returns the Gin engine for external HTTP server management
+func (s *Server) Engine() http.Handler {
+	s.RegisterRoutes()
+	return s.engine
+}
+
+// Run starts the HTTP server (convenience method)
 func (s *Server) Run() error {
 	s.RegisterRoutes()
 
