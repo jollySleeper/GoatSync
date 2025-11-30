@@ -96,6 +96,7 @@ func (s *Server) RegisterRoutes() {
 	{
 		collection.GET("/", s.collectionHandler.List)
 		collection.POST("/", s.collectionHandler.Create)
+		collection.POST("/list_multi/", s.collectionHandler.ListMulti)
 		collection.GET("/:collection_uid/", s.collectionHandler.Get)
 
 		// Item routes (nested under collection)
