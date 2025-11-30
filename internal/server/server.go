@@ -95,6 +95,7 @@ func (s *Server) RegisterRoutes() {
 	collection := api.Group("/collection", middleware.RequireAuth(s.authService))
 	{
 		collection.GET("/", s.collectionHandler.List)
+		collection.POST("/", s.collectionHandler.Create)
 		collection.GET("/:collection_uid/", s.collectionHandler.Get)
 
 		// Item routes (nested under collection)
