@@ -24,6 +24,7 @@ type Server struct {
 	invitationHandler *handler.InvitationHandler
 	chunkHandler      *handler.ChunkHandler
 	websocketHandler  *handler.WebSocketHandler
+	healthHandler     *handler.HealthHandler
 }
 
 // New creates a new server instance
@@ -37,6 +38,7 @@ func New(
 	invitationHandler *handler.InvitationHandler,
 	chunkHandler *handler.ChunkHandler,
 	websocketHandler *handler.WebSocketHandler,
+	healthHandler *handler.HealthHandler,
 ) *Server {
 	// Set Gin mode based on config
 	if cfg.Debug {
@@ -63,11 +65,17 @@ func New(
 		invitationHandler: invitationHandler,
 		chunkHandler:      chunkHandler,
 		websocketHandler:  websocketHandler,
+		healthHandler:     healthHandler,
 	}
 }
 
 // RegisterRoutes sets up all the routes
 func (s *Server) RegisterRoutes() {
+	// Health check endpoints
+	s.engine.GET("/health", s.healthHandler.Health)
+	s.engine.GET("/ready", s.healthHandler.Ready)
+	s.engine.GET("/live", s.healthHandler.Live)
+
 	// Root is_etebase check (some clients check at root)
 	s.engine.GET("/is_etebase", s.authHandler.IsEtebase)
 
