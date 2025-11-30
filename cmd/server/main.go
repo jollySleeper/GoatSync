@@ -9,6 +9,7 @@ import (
 	"goatsync/internal/database"
 	"goatsync/internal/handler"
 	"goatsync/internal/model"
+	redisclient "goatsync/internal/redis"
 	"goatsync/internal/repository"
 	"goatsync/internal/server"
 	"goatsync/internal/service"
@@ -82,7 +83,20 @@ func main() {
 	// 5. Initialize file storage
 	fileStorage := storage.NewFileStorage(cfg.ChunkStoragePath)
 
-	// 6. Initialize repositories
+	// 6. Initialize Redis (optional)
+	var redis *redisclient.Client
+	if cfg.RedisURL != "" {
+		var err error
+		redis, err = redisclient.New(cfg.RedisURL)
+		if err != nil {
+			log.Printf("WARNING: Failed to connect to Redis: %v", err)
+			log.Println("WebSocket pub/sub will use in-memory fallback")
+		} else {
+			log.Println("Redis connected successfully")
+		}
+	}
+
+	// 7. Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	tokenRepo := repository.NewTokenRepository(db)
 	collectionRepo := repository.NewCollectionRepository(db)
@@ -92,7 +106,7 @@ func main() {
 	chunkRepo := repository.NewChunkRepository(db)
 	log.Println("Repositories initialized")
 
-	// 7. Initialize services
+	// 8. Initialize services
 	authService := service.NewAuthService(userRepo, tokenRepo, cfg)
 	collectionService := service.NewCollectionService(collectionRepo, cfg)
 	itemService := service.NewItemService(itemRepo, nil, collectionRepo, memberRepo)
@@ -101,18 +115,18 @@ func main() {
 	chunkService := service.NewChunkService(chunkRepo, collectionRepo, memberRepo, fileStorage)
 	log.Println("Services initialized")
 
-	// 8. Initialize handlers
+	// 9. Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
 	collectionHandler := handler.NewCollectionHandler(collectionService)
 	itemHandler := handler.NewItemHandler(itemService)
 	memberHandler := handler.NewMemberHandler(memberService)
 	invitationHandler := handler.NewInvitationHandler(invitationService)
 	chunkHandler := handler.NewChunkHandler(chunkService)
-	websocketHandler := handler.NewWebSocketHandler()
+	websocketHandler := handler.NewWebSocketHandler(redis)
 	healthHandler := handler.NewHealthHandler(db)
 	log.Println("Handlers initialized")
 
-	// 9. Create and start server
+	// 10. Create and start server
 	srv := server.New(
 		cfg,
 		authService,
