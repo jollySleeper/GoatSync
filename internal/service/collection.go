@@ -104,6 +104,63 @@ func (s *CollectionService) GetCollection(
 	return s.collectionRepo.GetByUID(ctx, uid)
 }
 
+// CollectionCreateRequest is the request for creating a collection
+type CollectionCreateRequest struct {
+	Collection CollectionIn `msgpack:"collection"`
+	Item       ItemIn       `msgpack:"item"`
+}
+
+// CollectionIn represents collection data in requests
+type CollectionIn struct {
+	UID            string `msgpack:"uid"`
+	CollectionType string `msgpack:"collectionType,omitempty"`
+}
+
+// ItemIn represents item data in requests
+type ItemIn struct {
+	UID     string          `msgpack:"uid"`
+	Version uint16          `msgpack:"version"`
+	Etag    *string         `msgpack:"etag,omitempty"`
+	Content CollectionContent `msgpack:"content"`
+}
+
+// CollectionContent represents collection item content
+type CollectionContent struct {
+	UID     string   `msgpack:"uid"`
+	Meta    []byte   `msgpack:"meta"`
+	Chunks  []string `msgpack:"chunks,omitempty"`
+}
+
+// CreateCollection creates a new collection
+func (s *CollectionService) CreateCollection(
+	ctx context.Context,
+	userID uint,
+	req *CollectionCreateRequest,
+) (*CollectionOut, error) {
+	// Create the main item for the collection
+	mainItem := &model.CollectionItem{
+		UID:     req.Item.UID,
+		Version: req.Item.Version,
+	}
+
+	// Create the collection
+	col := &model.Collection{
+		UID:      req.Collection.UID,
+		OwnerID:  userID,
+		MainItem: mainItem,
+	}
+
+	if err := s.collectionRepo.Create(ctx, col); err != nil {
+		return nil, err
+	}
+
+	// Create membership for the owner (admin access)
+	// Note: This would be handled by the repository or a separate call
+
+	out := s.collectionToOut(col)
+	return &out, nil
+}
+
 // collectionToOut converts a model.Collection to CollectionOut
 func (s *CollectionService) collectionToOut(col *model.Collection) CollectionOut {
 	out := CollectionOut{
