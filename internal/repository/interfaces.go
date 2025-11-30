@@ -176,6 +176,9 @@ type InvitationRepository interface {
 	// ListOutgoing lists outgoing invitations from a member
 	ListOutgoing(ctx context.Context, memberID uint) ([]model.CollectionInvitation, error)
 
+	// ListOutgoingByUser lists all outgoing invitations sent by a user
+	ListOutgoingByUser(ctx context.Context, userID uint) ([]model.CollectionInvitation, error)
+
 	// Delete deletes an invitation
 	Delete(ctx context.Context, id uint) error
 
