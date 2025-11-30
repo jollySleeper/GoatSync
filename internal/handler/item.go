@@ -67,3 +67,60 @@ func (h *ItemHandler) Get(c *gin.Context) {
 	h.RespondMsgpack(c, http.StatusOK, resp)
 }
 
+// Batch handles POST /api/v1/collection/:collection_uid/item/batch/
+func (h *ItemHandler) Batch(c *gin.Context) {
+	user := c.MustGet("user").(*model.User)
+	collectionUID := c.Param("collection_uid")
+
+	var req service.ItemBatchRequest
+	if err := h.ParseMsgpack(c, &req); err != nil {
+		return
+	}
+
+	err := h.itemService.BatchItems(c.Request.Context(), collectionUID, user.ID, &req)
+	if err != nil {
+		h.HandleError(c, err)
+		return
+	}
+
+	h.RespondMsgpack(c, http.StatusOK, gin.H{"status": "ok"})
+}
+
+// Transaction handles POST /api/v1/collection/:collection_uid/item/transaction/
+func (h *ItemHandler) Transaction(c *gin.Context) {
+	user := c.MustGet("user").(*model.User)
+	collectionUID := c.Param("collection_uid")
+
+	var req service.ItemTransactionRequest
+	if err := h.ParseMsgpack(c, &req); err != nil {
+		return
+	}
+
+	err := h.itemService.TransactionItems(c.Request.Context(), collectionUID, user.ID, &req)
+	if err != nil {
+		h.HandleError(c, err)
+		return
+	}
+
+	h.RespondMsgpack(c, http.StatusOK, gin.H{"status": "ok"})
+}
+
+// FetchUpdates handles POST /api/v1/collection/:collection_uid/item/fetch_updates/
+func (h *ItemHandler) FetchUpdates(c *gin.Context) {
+	user := c.MustGet("user").(*model.User)
+	collectionUID := c.Param("collection_uid")
+
+	var req service.FetchUpdatesRequest
+	if err := h.ParseMsgpack(c, &req); err != nil {
+		return
+	}
+
+	resp, err := h.itemService.FetchUpdates(c.Request.Context(), collectionUID, user.ID, &req)
+	if err != nil {
+		h.HandleError(c, err)
+		return
+	}
+
+	h.RespondMsgpack(c, http.StatusOK, resp)
+}
+
