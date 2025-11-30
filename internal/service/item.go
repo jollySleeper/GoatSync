@@ -260,6 +260,85 @@ type FetchUpdatesResponse struct {
 	Data []ItemOut `msgpack:"data"`
 }
 
+// RevisionListResponse is the response for listing revisions
+type RevisionListResponse struct {
+	Data     []RevisionOut `msgpack:"data"`
+	Iterator *string       `msgpack:"iterator,omitempty"`
+	Done     bool          `msgpack:"done"`
+}
+
+// RevisionOut represents a revision in API responses
+type RevisionOut struct {
+	UID     string `msgpack:"uid"`
+	Meta    []byte `msgpack:"meta"`
+	Deleted bool   `msgpack:"deleted"`
+}
+
+// GetItemRevisions retrieves revisions for an item
+func (s *ItemService) GetItemRevisions(
+	ctx context.Context,
+	collectionUID, itemUID string,
+	userID uint,
+	iterator string,
+	limit int,
+) (*RevisionListResponse, error) {
+	// Get collection and verify access
+	col, err := s.collectionRepo.GetByUID(ctx, collectionUID)
+	if err != nil {
+		return nil, err
+	}
+	if col == nil {
+		return nil, pkgerrors.ErrNotMember
+	}
+
+	// Verify membership
+	member, err := s.memberRepo.GetByUserAndCollection(ctx, userID, col.ID)
+	if err != nil {
+		return nil, err
+	}
+	if member == nil {
+		return nil, pkgerrors.ErrNotMember
+	}
+
+	// Get item
+	item, err := s.itemRepo.GetByUID(ctx, col.ID, itemUID)
+	if err != nil {
+		return nil, err
+	}
+	if item == nil {
+		return nil, pkgerrors.ErrNotMember
+	}
+
+	// Get revisions
+	revisions, err := s.revisionRepo.ListForItem(ctx, item.ID, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	data := make([]RevisionOut, len(revisions))
+	for i, rev := range revisions {
+		data[i] = RevisionOut{
+			UID:     rev.UID,
+			Meta:    rev.Meta,
+			Deleted: rev.Deleted,
+		}
+	}
+
+	// Set iterator if there are more results
+	var iteratorStr *string
+	done := len(revisions) < limit
+	if !done && len(revisions) > 0 {
+		lastUID := revisions[len(revisions)-1].UID
+		iteratorStr = &lastUID
+	}
+
+	return &RevisionListResponse{
+		Data:     data,
+		Iterator: iteratorStr,
+		Done:     done,
+	}, nil
+}
+
 // FetchUpdates returns items that have changed since the given etags
 func (s *ItemService) FetchUpdates(
 	ctx context.Context,
