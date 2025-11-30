@@ -146,6 +146,9 @@ type MemberRepository interface {
 	// GetByUserAndCollection retrieves a member by user ID and collection ID
 	GetByUserAndCollection(ctx context.Context, userID, collectionID uint) (*model.CollectionMember, error)
 
+	// GetByUsernameAndCollection retrieves a member by username and collection ID
+	GetByUsernameAndCollection(ctx context.Context, username string, collectionID uint) (*model.CollectionMember, error)
+
 	// ListForCollection lists all members of a collection
 	ListForCollection(ctx context.Context, collectionID uint) ([]model.CollectionMember, error)
 
