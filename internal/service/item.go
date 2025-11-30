@@ -124,6 +124,238 @@ func (s *ItemService) GetItem(
 	return &out, nil
 }
 
+// ItemBatchIn represents an item in a batch request
+type ItemBatchIn struct {
+	UID     string     `msgpack:"uid"`
+	Version uint16     `msgpack:"version"`
+	Etag    *string    `msgpack:"etag,omitempty"`
+	Content ContentIn  `msgpack:"content"`
+}
+
+// ContentIn represents item content in a batch request
+type ContentIn struct {
+	UID     string   `msgpack:"uid"`
+	Meta    []byte   `msgpack:"meta"`
+	Deleted bool     `msgpack:"deleted"`
+	Chunks  []string `msgpack:"chunks,omitempty"`
+}
+
+// ItemBatchRequest is the request for batch item operations
+type ItemBatchRequest struct {
+	Items []ItemBatchIn `msgpack:"items"`
+}
+
+// ItemTransactionRequest is the request for transaction item operations
+type ItemTransactionRequest struct {
+	Items []ItemBatchIn `msgpack:"items"`
+	Deps  *Dependencies `msgpack:"deps,omitempty"`
+}
+
+// Dependencies represents item dependencies for transactions
+type Dependencies struct {
+	Stoken string `msgpack:"stoken,omitempty"`
+}
+
+// BatchItems processes a batch of item updates (no etag validation)
+func (s *ItemService) BatchItems(
+	ctx context.Context,
+	collectionUID string,
+	userID uint,
+	req *ItemBatchRequest,
+) error {
+	// Get collection and verify write access
+	col, err := s.collectionRepo.GetByUID(ctx, collectionUID)
+	if err != nil {
+		return err
+	}
+	if col == nil {
+		return pkgerrors.ErrNotMember
+	}
+
+	member, err := s.memberRepo.GetByUserAndCollection(ctx, userID, col.ID)
+	if err != nil {
+		return err
+	}
+	if member == nil {
+		return pkgerrors.ErrNotMember
+	}
+	if !member.CanWrite() {
+		return pkgerrors.ErrNoWriteAccess
+	}
+
+	// Process each item
+	for _, itemIn := range req.Items {
+		if err := s.processItemUpdate(ctx, col.ID, &itemIn); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// TransactionItems processes a batch of item updates with etag validation
+func (s *ItemService) TransactionItems(
+	ctx context.Context,
+	collectionUID string,
+	userID uint,
+	req *ItemTransactionRequest,
+) error {
+	// Get collection and verify write access
+	col, err := s.collectionRepo.GetByUID(ctx, collectionUID)
+	if err != nil {
+		return err
+	}
+	if col == nil {
+		return pkgerrors.ErrNotMember
+	}
+
+	member, err := s.memberRepo.GetByUserAndCollection(ctx, userID, col.ID)
+	if err != nil {
+		return err
+	}
+	if member == nil {
+		return pkgerrors.ErrNotMember
+	}
+	if !member.CanWrite() {
+		return pkgerrors.ErrNoWriteAccess
+	}
+
+	// Process each item with etag validation
+	for _, itemIn := range req.Items {
+		// Validate etag if provided
+		if itemIn.Etag != nil {
+			existing, err := s.itemRepo.GetByUID(ctx, col.ID, itemIn.UID)
+			if err != nil {
+				return err
+			}
+			if existing != nil {
+				currentEtag := s.getItemEtag(existing)
+				if currentEtag != *itemIn.Etag {
+					return pkgerrors.NewWrongEtagError(*itemIn.Etag, currentEtag)
+				}
+			}
+		}
+
+		if err := s.processItemUpdate(ctx, col.ID, &itemIn); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// FetchUpdatesRequest is the request for fetching item updates
+type FetchUpdatesRequest struct {
+	Items []ItemFetchIn `msgpack:"items"`
+}
+
+// ItemFetchIn represents an item in a fetch updates request
+type ItemFetchIn struct {
+	UID  string `msgpack:"uid"`
+	Etag string `msgpack:"etag"`
+}
+
+// FetchUpdatesResponse is the response for fetch updates
+type FetchUpdatesResponse struct {
+	Data []ItemOut `msgpack:"data"`
+}
+
+// FetchUpdates returns items that have changed since the given etags
+func (s *ItemService) FetchUpdates(
+	ctx context.Context,
+	collectionUID string,
+	userID uint,
+	req *FetchUpdatesRequest,
+) (*FetchUpdatesResponse, error) {
+	// Get collection and verify access
+	col, err := s.collectionRepo.GetByUID(ctx, collectionUID)
+	if err != nil {
+		return nil, err
+	}
+	if col == nil {
+		return nil, pkgerrors.ErrNotMember
+	}
+
+	member, err := s.memberRepo.GetByUserAndCollection(ctx, userID, col.ID)
+	if err != nil {
+		return nil, err
+	}
+	if member == nil {
+		return nil, pkgerrors.ErrNotMember
+	}
+
+	// Check each item for changes
+	var changed []ItemOut
+	for _, itemIn := range req.Items {
+		item, err := s.itemRepo.GetByUID(ctx, col.ID, itemIn.UID)
+		if err != nil {
+			return nil, err
+		}
+		if item == nil {
+			continue
+		}
+
+		currentEtag := s.getItemEtag(item)
+		if currentEtag != itemIn.Etag {
+			changed = append(changed, s.itemToOut(item))
+		}
+	}
+
+	return &FetchUpdatesResponse{Data: changed}, nil
+}
+
+func (s *ItemService) processItemUpdate(ctx context.Context, collectionID uint, itemIn *ItemBatchIn) error {
+	// Get or create item
+	item, err := s.itemRepo.GetByUID(ctx, collectionID, itemIn.UID)
+	if err != nil {
+		return err
+	}
+
+	if item == nil {
+		// Create new item
+		item = &model.CollectionItem{
+			UID:          itemIn.UID,
+			CollectionID: collectionID,
+			Version:      itemIn.Version,
+		}
+		if err := s.itemRepo.Create(ctx, item); err != nil {
+			return err
+		}
+	} else {
+		// Update version
+		item.Version = itemIn.Version
+		if err := s.itemRepo.Update(ctx, item); err != nil {
+			return err
+		}
+	}
+
+	// Create new revision
+	if s.revisionRepo != nil {
+		revision := &model.CollectionItemRevision{
+			UID:     itemIn.Content.UID,
+			ItemID:  item.ID,
+			Meta:    itemIn.Content.Meta,
+			Deleted: itemIn.Content.Deleted,
+		}
+		if err := s.revisionRepo.Create(ctx, revision); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *ItemService) getItemEtag(item *model.CollectionItem) string {
+	if len(item.Revisions) > 0 {
+		for _, rev := range item.Revisions {
+			if rev.Current != nil && *rev.Current {
+				return rev.UID
+			}
+		}
+	}
+	return ""
+}
+
 func (s *ItemService) itemToOut(item *model.CollectionItem) ItemOut {
 	out := ItemOut{
 		UID:     item.UID,
