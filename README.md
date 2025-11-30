@@ -50,10 +50,10 @@ curl http://localhost:3735/health
 
 | Document | Description |
 |----------|-------------|
-| [RUNNING.md](RUNNING.md) | Complete guide to running GoatSync |
-| [CHANGELOG.md](CHANGELOG.md) | Version history and features |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture details |
-| [LLM_START_HERE.md](LLM_START_HERE.md) | Quick reference for AI assistants |
+| [docs/RUNNING.md](docs/RUNNING.md) | Complete guide to running GoatSync |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Version history and features |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Technical architecture details |
+| [docs/COMPARISON.md](docs/COMPARISON.md) | EteSync vs GoatSync comparison |
 
 ## ⚙️ Configuration
 
