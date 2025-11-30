@@ -67,6 +67,35 @@ func (h *ItemHandler) Get(c *gin.Context) {
 	h.RespondMsgpack(c, http.StatusOK, resp)
 }
 
+// Revisions handles GET /api/v1/collection/:collection_uid/item/:item_uid/revision/
+func (h *ItemHandler) Revisions(c *gin.Context) {
+	user := c.MustGet("user").(*model.User)
+	collectionUID := c.Param("collection_uid")
+	itemUID := c.Param("item_uid")
+
+	if itemUID == "" {
+		h.HandleError(c, pkgerrors.ErrInvalidRequest.WithDetail("missing item UID"))
+		return
+	}
+
+	// Parse query params
+	iterator := c.Query("iterator")
+	limit := 50
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	resp, err := h.itemService.GetItemRevisions(c.Request.Context(), collectionUID, itemUID, user.ID, iterator, limit)
+	if err != nil {
+		h.HandleError(c, err)
+		return
+	}
+
+	h.RespondMsgpack(c, http.StatusOK, resp)
+}
+
 // Batch handles POST /api/v1/collection/:collection_uid/item/batch/
 func (h *ItemHandler) Batch(c *gin.Context) {
 	user := c.MustGet("user").(*model.User)
