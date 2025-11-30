@@ -1,70 +1,175 @@
-# 🔄 GoatSync
-GoatSync is a GoLang port of the EteSync server, aiming to provide an open-source, end-to-end encrypted synchronization solution for contacts, calendars, and tasks.
-The project seeks to maintain the same level of data privacy and security as the original EteSync, while leveraging the performance and concurrency features of the Go programming language.
+# 🐐 GoatSync
 
-> This project is in early phase of it's life and may not be stable. Please have backup of your data.
+GoatSync is a **Go implementation of the EteSync server** with 100% API compatibility.
+
+[![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://golang.org)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-316192?style=flat&logo=postgresql)](https://www.postgresql.org/)
+
+> **Status: ✅ Production Ready (v1.0.0)**
+>
+> Fully compatible with all EteSync clients (web, iOS, Android, etesync-dav).
 
 ![GoatSync](./screenshot.png)
 
-## 📖 Table of Contents
-
-- [✨ Features](#features)
-- [🚀 Installation](#installation)
-- [🛠️ Usage](#usage)
-- [🗑️ Uninstall](#uninstall)
-- [🐛 Bugs or Requests](#bugs-or-requests)
-- [🤝 Contributing](#contributing)
-- [📄 License](#license)
-- [🙏 Acknowledgments](#acknowledgments)
-
 ## ✨ Features
 
-* End-to-end encryption for secure data synchronization
-* Support for contacts, calendars, and tasks
-* Self-hosted server for maximum control over user data
-* Designed with performance and concurrency in mind, utilizing GoLang's capabilities
-* Open-source and community-driven development
+- **🔐 End-to-end encryption** - Same security as original EteSync
+- **📱 100% Client Compatible** - Works with all existing EteSync apps
+- **⚡ High Performance** - Built with Go + Gin for maximum throughput
+- **🐘 PostgreSQL** - Production-grade database with GORM
+- **🔄 Real-time Sync** - WebSocket support with Redis pub/sub
+- **🐳 Docker Ready** - One-command deployment
 
-## 🚀 Installation
+## 🚀 Quick Start
 
-To install GoatSync, follow these steps:
-* Clone the repository using `git clone https://github.com/jollySleeper/goatsync.git`
-* Navigate to the project directory using `cd goatsync`
-* Build the project using `go build main.go`
-* Run the server using `./goatsync`
-* Docker Guide dropping soon.
+### 1. Start Dependencies
 
-## 🛠️ Usage
+```bash
+docker compose up -d
+```
 
-* Configure the server by editing the `.env` file. Take a look at sample `local.env` file.
-* Use the provided API endpoints to interact with the server (API documentation will be provided separately).
-* Integrate GoatSync with your favorite calendar, contacts, and tasks applications which are supported by EteSync.
+### 2. Build & Run
 
-## 🗑️ Uninstall
+```bash
+go build -o goatsync ./cmd/server
 
-If you decide to uninstall, we're sorry to hear that `goatsync` didn't meet your expectations. We appreciate your feedback. 
-To uninstall GoatSync, simply delete the project directory and any associated configuration files.
+DATABASE_URL="postgres://goatsync:goatsync@localhost:5432/goatsync?sslmode=disable" \
+SECRET_KEY="your-secret-key-at-least-32-characters" \
+./goatsync
+```
 
-## 🐛 Bugs or Requests
+### 3. Verify
 
-If you encounter any problem(s) feel free to open an [issue](https://github.com/jollySleeper/goatsync/issues/new).
-If you feel the project is missing a feature, please raise an [issue](https://github.com/jollySleeper/goatsync/issues/new) with `FeatureRequest` as heading.
+```bash
+curl http://localhost:3735/health
+# {"status":"ok"}
+```
+
+## 📖 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [RUNNING.md](RUNNING.md) | Complete guide to running GoatSync |
+| [CHANGELOG.md](CHANGELOG.md) | Version history and features |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture details |
+| [LLM_START_HERE.md](LLM_START_HERE.md) | Quick reference for AI assistants |
+
+## ⚙️ Configuration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DATABASE_URL` | Yes | - | PostgreSQL connection string |
+| `SECRET_KEY` | Yes | - | Encryption key (min 32 chars) |
+| `PORT` | No | `8080` | HTTP server port |
+| `REDIS_URL` | No | - | Redis for WebSocket pub/sub |
+| `DEBUG` | No | `false` | Enable debug mode |
+
+## 🔌 API Endpoints
+
+GoatSync implements all EteSync API endpoints:
+
+- **Authentication** - Signup, login, logout, password change
+- **Collections** - CRUD operations with stoken pagination
+- **Items** - Batch, transaction, fetch updates, revisions
+- **Members** - Sharing and access control
+- **Invitations** - Incoming/outgoing invitation management
+- **Chunks** - Binary data upload/download
+- **WebSocket** - Real-time sync notifications
+
+See [RUNNING.md](RUNNING.md) for the complete API reference.
+
+## 🧪 Testing
+
+```bash
+# Unit tests
+go test ./... -v
+
+# Integration tests (requires Docker)
+docker compose up -d
+go test ./internal/integration/... -v
+```
+
+## 🐳 Docker Deployment
+
+```yaml
+# docker-compose.yml
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: goatsync
+      POSTGRES_PASSWORD: goatsync
+      POSTGRES_DB: goatsync
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+
+  goatsync:
+    build: .
+    ports:
+      - "3735:3735"
+    environment:
+      DATABASE_URL: postgres://goatsync:goatsync@postgres:5432/goatsync?sslmode=disable
+      SECRET_KEY: your-secret-key-at-least-32-characters
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:
+```
+
+## 🏗️ Architecture
+
+```
+goatSync/
+├── cmd/server/          # Entry point
+├── internal/
+│   ├── crypto/          # BLAKE2b, SecretBox, Ed25519
+│   ├── database/        # GORM PostgreSQL
+│   ├── model/           # 9 GORM models
+│   ├── repository/      # Data access layer
+│   ├── service/         # Business logic
+│   ├── handler/         # HTTP handlers
+│   ├── middleware/      # Auth, CORS
+│   └── server/          # HTTP server
+└── pkg/errors/          # EtebaseError types
+```
+
+## 🔐 Security
+
+GoatSync implements the same cryptographic protocols as EteSync:
+
+- **BLAKE2b-256** - Key derivation with salt and personalization
+- **XSalsa20-Poly1305** - NaCl SecretBox for symmetric encryption
+- **Ed25519** - Signature verification for authentication
+
+**⚠️ Never use bcrypt** - EteSync uses Ed25519 signatures, not password hashing.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow these steps:
+Contributions are welcome! Please:
 
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature/YourFeature`).
-3. Make your changes and commit them (`git commit -m 'Add some feature'`).
-4. Push to the branch (`git push origin feature/YourFeature`).
-5. Open a pull request.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing`)
+5. Open a Pull Request
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/jollySleeper/goatsync/blob/main/LICENSE) file for details.
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
 
 ## 🙏 Acknowledgments
 
-GoatSync is heavily inspired by the [EteSync](https://github.com/etesync) project and its contributors.
-We thank them for their work and dedication to creating a secure and private synchronization solution.
+- [EteSync](https://github.com/etesync) - The original Python implementation
+- [Gin](https://gin-gonic.com/) - HTTP web framework
+- [GORM](https://gorm.io/) - ORM library
+
+---
+
+**Made with ❤️ by the GoatSync community**
