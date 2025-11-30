@@ -109,6 +109,7 @@ func main() {
 	invitationHandler := handler.NewInvitationHandler(invitationService)
 	chunkHandler := handler.NewChunkHandler(chunkService)
 	websocketHandler := handler.NewWebSocketHandler()
+	healthHandler := handler.NewHealthHandler(db)
 	log.Println("Handlers initialized")
 
 	// 9. Create and start server
@@ -122,6 +123,7 @@ func main() {
 		invitationHandler,
 		chunkHandler,
 		websocketHandler,
+		healthHandler,
 	)
 
 	log.Printf("Starting GoatSync server on port %s", cfg.Port)
