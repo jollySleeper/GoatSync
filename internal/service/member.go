@@ -77,8 +77,8 @@ func (s *MemberService) ListMembers(ctx context.Context, collectionUID string, u
 	}, nil
 }
 
-// UpdateMemberAccess updates a member's access level
-func (s *MemberService) UpdateMemberAccess(ctx context.Context, collectionUID, username string, userID uint, newAccessLevel model.AccessLevel) error {
+// ModifyMember updates a member's access level
+func (s *MemberService) ModifyMember(ctx context.Context, collectionUID, username string, userID uint, accessLevelStr string) error {
 	// Get collection
 	col, err := s.collectionRepo.GetByUID(ctx, collectionUID)
 	if err != nil {
@@ -97,8 +97,21 @@ func (s *MemberService) UpdateMemberAccess(ctx context.Context, collectionUID, u
 		return pkgerrors.ErrAdminRequired
 	}
 
-	// TODO: Get target user by username and update their access level
-	return nil
+	// Parse access level
+	newLevel := stringToAccessLevel(accessLevelStr)
+
+	// Get target member by username
+	targetMember, err := s.memberRepo.GetByUsernameAndCollection(ctx, username, col.ID)
+	if err != nil {
+		return err
+	}
+	if targetMember == nil {
+		return pkgerrors.ErrNotMember
+	}
+
+	// Update access level
+	targetMember.AccessLevel = newLevel
+	return s.memberRepo.Update(ctx, targetMember)
 }
 
 // RemoveMember removes a member from a collection
@@ -161,6 +174,17 @@ func accessLevelToString(level model.AccessLevel) string {
 		return "readWrite"
 	default:
 		return "readOnly"
+	}
+}
+
+func stringToAccessLevel(s string) model.AccessLevel {
+	switch s {
+	case "admin":
+		return model.AccessLevelAdmin
+	case "readWrite":
+		return model.AccessLevelReadWrite
+	default:
+		return model.AccessLevelReadOnly
 	}
 }
 
