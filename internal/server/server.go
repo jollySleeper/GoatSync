@@ -14,10 +14,16 @@ import (
 
 // Server represents the HTTP server
 type Server struct {
-	cfg         *config.Config
-	engine      *gin.Engine
-	authHandler *handler.AuthHandler
-	authService *service.AuthService
+	cfg               *config.Config
+	engine            *gin.Engine
+	authService       *service.AuthService
+	authHandler       *handler.AuthHandler
+	collectionHandler *handler.CollectionHandler
+	itemHandler       *handler.ItemHandler
+	memberHandler     *handler.MemberHandler
+	invitationHandler *handler.InvitationHandler
+	chunkHandler      *handler.ChunkHandler
+	websocketHandler  *handler.WebSocketHandler
 }
 
 // New creates a new server instance
@@ -25,6 +31,12 @@ func New(
 	cfg *config.Config,
 	authService *service.AuthService,
 	authHandler *handler.AuthHandler,
+	collectionHandler *handler.CollectionHandler,
+	itemHandler *handler.ItemHandler,
+	memberHandler *handler.MemberHandler,
+	invitationHandler *handler.InvitationHandler,
+	chunkHandler *handler.ChunkHandler,
+	websocketHandler *handler.WebSocketHandler,
 ) *Server {
 	// Set Gin mode based on config
 	if cfg.Debug {
@@ -41,10 +53,16 @@ func New(
 	engine.Use(corsMiddleware(cfg.AllowedOrigins))
 
 	return &Server{
-		cfg:         cfg,
-		engine:      engine,
-		authHandler: authHandler,
-		authService: authService,
+		cfg:               cfg,
+		engine:            engine,
+		authService:       authService,
+		authHandler:       authHandler,
+		collectionHandler: collectionHandler,
+		itemHandler:       itemHandler,
+		memberHandler:     memberHandler,
+		invitationHandler: invitationHandler,
+		chunkHandler:      chunkHandler,
+		websocketHandler:  websocketHandler,
 	}
 }
 
@@ -74,21 +92,43 @@ func (s *Server) RegisterRoutes() {
 	}
 
 	// Collection routes (all require auth)
-	// TODO: Add collection handler
-	// collection := api.Group("/collection", middleware.RequireAuth(s.authService))
-	// {
-	//     collection.GET("/", s.collectionHandler.List)
-	//     collection.POST("/", s.collectionHandler.Create)
-	//     collection.POST("/list_multi/", s.collectionHandler.ListMulti)
-	//     collection.GET("/:collection_uid/", s.collectionHandler.Get)
-	//     // ... more routes
-	// }
+	collection := api.Group("/collection", middleware.RequireAuth(s.authService))
+	{
+		collection.GET("/", s.collectionHandler.List)
+		collection.GET("/:collection_uid/", s.collectionHandler.Get)
+
+		// Item routes (nested under collection)
+		collection.GET("/:collection_uid/item/", s.itemHandler.List)
+		collection.GET("/:collection_uid/item/:item_uid/", s.itemHandler.Get)
+
+		// Chunk routes
+		collection.PUT("/:collection_uid/item/:item_uid/chunk/:chunk_uid/", s.chunkHandler.Upload)
+		collection.GET("/:collection_uid/item/:item_uid/chunk/:chunk_uid/download/", s.chunkHandler.Download)
+
+		// Member routes
+		collection.GET("/:collection_uid/member/", s.memberHandler.List)
+		collection.DELETE("/:collection_uid/member/:username/", s.memberHandler.Remove)
+		collection.POST("/:collection_uid/member/leave/", s.memberHandler.Leave)
+	}
 
 	// Invitation routes (all require auth)
-	// TODO: Add invitation handler
+	invitation := api.Group("/invitation", middleware.RequireAuth(s.authService))
+	{
+		// Incoming invitations
+		incoming := invitation.Group("/incoming")
+		{
+			incoming.GET("/", s.invitationHandler.ListIncoming)
+			incoming.GET("/:invitation_uid/", s.invitationHandler.GetIncoming)
+			incoming.DELETE("/:invitation_uid/", s.invitationHandler.RejectIncoming)
+			incoming.POST("/:invitation_uid/accept/", s.invitationHandler.AcceptIncoming)
+		}
+	}
 
 	// WebSocket route
-	// TODO: Add websocket handler
+	ws := api.Group("/ws")
+	{
+		ws.GET("/:ticket/", s.websocketHandler.Handle)
+	}
 }
 
 // Run starts the HTTP server
@@ -130,4 +170,3 @@ func corsMiddleware(allowedOrigins []string) gin.HandlerFunc {
 		c.Next()
 	}
 }
-

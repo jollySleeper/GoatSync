@@ -12,6 +12,7 @@ import (
 	"goatsync/internal/repository"
 	"goatsync/internal/server"
 	"goatsync/internal/service"
+	"goatsync/internal/storage"
 )
 
 const banner = `
@@ -72,29 +73,56 @@ func main() {
 		log.Println("WARNING: DATABASE_URL not set. Running in memory-only mode")
 	}
 
-	// 4. Initialize repositories
-	var userRepo repository.UserRepository
-	var tokenRepo repository.TokenRepository
-	if db != nil {
-		userRepo = repository.NewUserRepository(db)
-		tokenRepo = repository.NewTokenRepository(db)
-		log.Println("Using PostgreSQL repositories")
-	} else {
-		// Fall back to in-memory repositories for development
-		log.Println("Using in-memory repositories (development mode)")
-		// For now, we'll just log a warning - in-memory repos need to be implemented
-		// This allows the server to start without a database for testing
-		os.Exit(1) // Remove this line once in-memory repos are implemented
+	// 4. Check if we have a database
+	if db == nil {
+		log.Println("ERROR: Database connection required. Set DATABASE_URL environment variable.")
+		os.Exit(1)
 	}
 
-	// 5. Initialize services
+	// 5. Initialize file storage
+	fileStorage := storage.NewFileStorage(cfg.ChunkStoragePath)
+
+	// 6. Initialize repositories
+	userRepo := repository.NewUserRepository(db)
+	tokenRepo := repository.NewTokenRepository(db)
+	collectionRepo := repository.NewCollectionRepository(db)
+	itemRepo := repository.NewItemRepository(db)
+	memberRepo := repository.NewMemberRepository(db)
+	invitationRepo := repository.NewInvitationRepository(db)
+	chunkRepo := repository.NewChunkRepository(db)
+	log.Println("Repositories initialized")
+
+	// 7. Initialize services
 	authService := service.NewAuthService(userRepo, tokenRepo, cfg)
+	collectionService := service.NewCollectionService(collectionRepo, cfg)
+	itemService := service.NewItemService(itemRepo, nil, collectionRepo, memberRepo)
+	memberService := service.NewMemberService(memberRepo, collectionRepo)
+	invitationService := service.NewInvitationService(invitationRepo, memberRepo, userRepo)
+	chunkService := service.NewChunkService(chunkRepo, collectionRepo, memberRepo, fileStorage)
+	log.Println("Services initialized")
 
-	// 6. Initialize handlers
+	// 8. Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
+	collectionHandler := handler.NewCollectionHandler(collectionService)
+	itemHandler := handler.NewItemHandler(itemService)
+	memberHandler := handler.NewMemberHandler(memberService)
+	invitationHandler := handler.NewInvitationHandler(invitationService)
+	chunkHandler := handler.NewChunkHandler(chunkService)
+	websocketHandler := handler.NewWebSocketHandler()
+	log.Println("Handlers initialized")
 
-	// 7. Create and start server
-	srv := server.New(cfg, authService, authHandler)
+	// 9. Create and start server
+	srv := server.New(
+		cfg,
+		authService,
+		authHandler,
+		collectionHandler,
+		itemHandler,
+		memberHandler,
+		invitationHandler,
+		chunkHandler,
+		websocketHandler,
+	)
 
 	log.Printf("Starting GoatSync server on port %s", cfg.Port)
 	if err := srv.Run(); err != nil {
