@@ -1,10 +1,15 @@
 package handler
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"log"
 	"net/http"
 	"sync"
 	"time"
+
+	redisclient "goatsync/internal/redis"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -21,6 +26,7 @@ var upgrader = websocket.Upgrader{
 // WebSocketHandler handles WebSocket connections
 type WebSocketHandler struct {
 	Base
+	redis       *redisclient.Client
 	tickets     map[string]*Ticket
 	ticketMutex sync.RWMutex
 }
@@ -33,19 +39,29 @@ type Ticket struct {
 }
 
 // NewWebSocketHandler creates a new WebSocket handler
-func NewWebSocketHandler() *WebSocketHandler {
+func NewWebSocketHandler(redis *redisclient.Client) *WebSocketHandler {
 	return &WebSocketHandler{
+		redis:   redis,
 		tickets: make(map[string]*Ticket),
 	}
 }
 
 // CreateTicket creates a new ticket for WebSocket connection
-func (h *WebSocketHandler) CreateTicket(userID, collectionID uint) string {
+func (h *WebSocketHandler) CreateTicket(ctx context.Context, userID, collectionID uint) string {
+	ticketID := generateTicketID()
+
+	// Use Redis if available
+	if h.redis != nil && h.redis.IsActive() {
+		if err := h.redis.SetTicket(ctx, ticketID, userID); err != nil {
+			log.Printf("Redis SetTicket error: %v, falling back to in-memory", err)
+		} else {
+			return ticketID
+		}
+	}
+
+	// Fall back to in-memory
 	h.ticketMutex.Lock()
 	defer h.ticketMutex.Unlock()
-
-	// Generate ticket ID
-	ticketID := generateTicketID()
 
 	h.tickets[ticketID] = &Ticket{
 		UserID:       userID,
@@ -57,7 +73,18 @@ func (h *WebSocketHandler) CreateTicket(userID, collectionID uint) string {
 }
 
 // ValidateTicket validates and consumes a ticket
-func (h *WebSocketHandler) ValidateTicket(ticketID string) *Ticket {
+func (h *WebSocketHandler) ValidateTicket(ctx context.Context, ticketID string) *Ticket {
+	// Try Redis first if available
+	if h.redis != nil && h.redis.IsActive() {
+		userID, err := h.redis.GetAndDeleteTicket(ctx, ticketID)
+		if err != nil {
+			log.Printf("Redis GetAndDeleteTicket error: %v, trying in-memory", err)
+		} else if userID > 0 {
+			return &Ticket{UserID: userID}
+		}
+	}
+
+	// Fall back to in-memory
 	h.ticketMutex.Lock()
 	defer h.ticketMutex.Unlock()
 
@@ -66,8 +93,8 @@ func (h *WebSocketHandler) ValidateTicket(ticketID string) *Ticket {
 		return nil
 	}
 
-	// Check expiry (24 hours)
-	if time.Since(ticket.CreatedAt) > 24*time.Hour {
+	// Check expiry (10 seconds for tickets)
+	if time.Since(ticket.CreatedAt) > 10*time.Second {
 		delete(h.tickets, ticketID)
 		return nil
 	}
@@ -86,7 +113,7 @@ func (h *WebSocketHandler) Handle(c *gin.Context) {
 	}
 
 	// Validate ticket
-	ticket := h.ValidateTicket(ticketID)
+	ticket := h.ValidateTicket(c.Request.Context(), ticketID)
 	if ticket == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired ticket"})
 		return
@@ -101,10 +128,10 @@ func (h *WebSocketHandler) Handle(c *gin.Context) {
 	defer conn.Close()
 
 	// Handle connection
-	h.handleConnection(conn, ticket)
+	h.handleConnection(c.Request.Context(), conn, ticket)
 }
 
-func (h *WebSocketHandler) handleConnection(conn *websocket.Conn, ticket *Ticket) {
+func (h *WebSocketHandler) handleConnection(ctx context.Context, conn *websocket.Conn, ticket *Ticket) {
 	// Set up ping/pong
 	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	conn.SetPongHandler(func(string) error {
@@ -112,25 +139,56 @@ func (h *WebSocketHandler) handleConnection(conn *websocket.Conn, ticket *Ticket
 		return nil
 	})
 
+	// Subscribe to Redis channel if available
+	var msgChan <-chan []byte
+	var cleanup func()
+	if h.redis != nil && h.redis.IsActive() && ticket.CollectionID > 0 {
+		channel := "col." + string(rune(ticket.CollectionID))
+		msgChan, cleanup = h.redis.Subscribe(ctx, channel)
+		defer cleanup()
+
+		// Forward Redis messages to WebSocket
+		go func() {
+			for msg := range msgChan {
+				if err := conn.WriteMessage(websocket.BinaryMessage, msg); err != nil {
+					log.Printf("WebSocket write error: %v", err)
+					return
+				}
+			}
+		}()
+	}
+
+	// Ping ticker
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
 	// Read messages
 	for {
-		messageType, message, err := conn.ReadMessage()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("WebSocket error: %v", err)
+		select {
+		case <-ticker.C:
+			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
 			}
-			break
-		}
+		default:
+			messageType, message, err := conn.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					log.Printf("WebSocket error: %v", err)
+				}
+				return
+			}
 
-		// Echo back for now (TODO: implement proper message handling)
-		if err := conn.WriteMessage(messageType, message); err != nil {
-			break
+			// Echo back for now
+			if err := conn.WriteMessage(messageType, message); err != nil {
+				return
+			}
 		}
 	}
 }
 
 func generateTicketID() string {
-	// Simple ticket generation (in production, use crypto/rand)
-	return time.Now().Format("20060102150405.000000000")
+	b := make([]byte, 16)
+	rand.Read(b)
+	return hex.EncodeToString(b)
 }
 
