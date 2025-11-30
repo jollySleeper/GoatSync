@@ -69,6 +69,33 @@ func (h *CollectionHandler) Get(c *gin.Context) {
 	h.RespondMsgpack(c, http.StatusOK, col)
 }
 
+// ListMulti handles POST /api/v1/collection/list_multi/
+func (h *CollectionHandler) ListMulti(c *gin.Context) {
+	user := c.MustGet("user").(*model.User)
+
+	var req service.ListMultiRequest
+	if err := h.ParseMsgpack(c, &req); err != nil {
+		return
+	}
+
+	// Parse query params
+	stoken := c.Query("stoken")
+	limit := 50
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	resp, err := h.collectionService.ListMultiCollections(c.Request.Context(), user.ID, req.CollectionTypes, stoken, limit)
+	if err != nil {
+		h.HandleError(c, err)
+		return
+	}
+
+	h.RespondMsgpack(c, http.StatusOK, resp)
+}
+
 // Create handles POST /api/v1/collection/
 func (h *CollectionHandler) Create(c *gin.Context) {
 	user := c.MustGet("user").(*model.User)
