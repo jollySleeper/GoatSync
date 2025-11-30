@@ -105,3 +105,56 @@ func (h *InvitationHandler) AcceptIncoming(c *gin.Context) {
 	h.RespondEmpty(c, http.StatusNoContent)
 }
 
+// ListOutgoing handles GET /api/v1/invitation/outgoing/
+func (h *InvitationHandler) ListOutgoing(c *gin.Context) {
+	user := c.MustGet("user").(*model.User)
+
+	resp, err := h.invitationService.ListOutgoing(c.Request.Context(), user.ID)
+	if err != nil {
+		h.HandleError(c, err)
+		return
+	}
+
+	h.RespondMsgpack(c, http.StatusOK, resp)
+}
+
+// DeleteOutgoing handles DELETE /api/v1/invitation/outgoing/:invitation_uid/
+func (h *InvitationHandler) DeleteOutgoing(c *gin.Context) {
+	user := c.MustGet("user").(*model.User)
+	invitationUID := c.Param("invitation_uid")
+
+	if invitationUID == "" {
+		h.HandleError(c, pkgerrors.ErrInvalidRequest.WithDetail("missing invitation UID"))
+		return
+	}
+
+	err := h.invitationService.DeleteOutgoing(c.Request.Context(), invitationUID, user.ID)
+	if err != nil {
+		h.HandleError(c, err)
+		return
+	}
+
+	h.RespondEmpty(c, http.StatusNoContent)
+}
+
+// FetchUserForInviteRequest is the request body for fetching user info for invite
+type FetchUserForInviteRequest struct {
+	Username string `msgpack:"username"`
+}
+
+// FetchUserForInvite handles POST /api/v1/invitation/outgoing/fetch_user_profile/
+func (h *InvitationHandler) FetchUserForInvite(c *gin.Context) {
+	var req FetchUserForInviteRequest
+	if err := h.ParseMsgpack(c, &req); err != nil {
+		return
+	}
+
+	resp, err := h.invitationService.FetchUserForInvite(c.Request.Context(), req.Username)
+	if err != nil {
+		h.HandleError(c, err)
+		return
+	}
+
+	h.RespondMsgpack(c, http.StatusOK, resp)
+}
+
