@@ -112,6 +112,7 @@ func (s *Server) RegisterRoutes() {
 		// Member routes
 		collection.GET("/:collection_uid/member/", s.memberHandler.List)
 		collection.DELETE("/:collection_uid/member/:username/", s.memberHandler.Remove)
+		collection.PATCH("/:collection_uid/member/:username/", s.memberHandler.Modify)
 		collection.POST("/:collection_uid/member/leave/", s.memberHandler.Leave)
 	}
 
