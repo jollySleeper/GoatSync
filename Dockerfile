@@ -38,14 +38,14 @@ RUN mkdir -p /data/chunks && chown -R goatsync:goatsync /data
 USER goatsync
 
 # Expose port
-EXPOSE 8080
+EXPOSE 3735
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3735/health || exit 1
 
 # Set environment defaults
-ENV PORT=8080 \
+ENV PORT=3735 \
     CHUNK_STORAGE_PATH=/data/chunks
 
 # Run

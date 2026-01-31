@@ -7,7 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.0] - 2025-12-01
+## [0.1.0] - 2026-01-31
+
+### 🚀 First Public Release
+
+First stable release with full EteSync API compatibility.
+
+### Added
+- Docker image published to GitHub Container Registry (`ghcr.io/jollysleeper/goatsync`)
+- Multi-platform support (linux/amd64, linux/arm64)
+- `docker-compose.yml` for standard deployment
+- `docker-compose-full.yml` with EteSync-DAV for CalDAV/CardDAV support
+- `.env.example` with documented configuration options
+- `docs/DEPLOYMENT.md` - comprehensive deployment guide
+
+### Fixed
+- Authentication token parsing now correctly strips "Token " prefix
+- All `errcheck` lint violations resolved
+- Updated to golangci-lint v2.6 for Go 1.25 compatibility
+
+### Changed
+- Default port changed from 8080 to 3735 in Dockerfile
+- Docker builds now trigger only on version tags (not branch pushes)
+- Docker compose files use `env_file` for cleaner configuration
+
+---
+
+## [0.0.1] - 2025-12-01
 
 ### 🎉 Migration Complete!
 

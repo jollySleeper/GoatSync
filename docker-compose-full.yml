@@ -6,7 +6,9 @@
 # - GNOME Evolution
 # - Any CalDAV/CardDAV compatible app
 #
-# Usage: docker compose -f docker-compose-full.yml up -d
+# Usage:
+#   1. Copy .env.example to .env and configure
+#   2. docker compose -f docker-compose-full.yml up -d
 # 
 # Endpoints:
 #   - GoatSync API:    http://localhost:3735 (for EteSync apps)
@@ -25,6 +27,7 @@ services:
     image: postgres:15-alpine
     container_name: goatsync-postgres
     restart: unless-stopped
+    env_file: .env
     environment:
       POSTGRES_USER: goatsync
       POSTGRES_PASSWORD: ${DB_PASSWORD:-goatsync}
@@ -56,14 +59,13 @@ services:
   # GOATSYNC - Main EteSync-compatible server
   # ═══════════════════════════════════════════════════════════
   goatsync:
-    # Use ghcr.io image (latest will be available after workflow update)
-    image: ghcr.io/jollysleeper/goatsync:main
-    # Or build locally:
-    # build: .
+    image: ghcr.io/jollysleeper/goatsync:latest
+    # Or build locally: build: .
     container_name: goatsync
     restart: unless-stopped
+    env_file: .env
     ports:
-      - "3735:3735"
+      - "${PORT:-3735}:3735"
     environment:
       DATABASE_URL: postgres://goatsync:${DB_PASSWORD:-goatsync}@postgres:5432/goatsync?sslmode=disable
       SECRET_KEY: ${SECRET_KEY:-change_this_to_a_secure_32_char_key}

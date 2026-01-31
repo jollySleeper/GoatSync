@@ -1,6 +1,12 @@
 # GoatSync - Self-hosted EteSync/Etebase compatible server
-# Usage: docker compose up -d
-# Health check: curl http://localhost:3735/health
+#
+# Usage:
+#   1. Copy .env.example to .env and configure
+#   2. docker compose up -d
+#   3. curl http://localhost:3735/health
+#
+# For CalDAV/CardDAV support (Thunderbird, Apple Calendar, etc.),
+# use docker-compose-full.yml instead.
 
 services:
   # ═══════════════════════════════════════════════════════════
@@ -10,6 +16,7 @@ services:
     image: postgres:15-alpine
     container_name: goatsync-postgres
     restart: unless-stopped
+    env_file: .env
     environment:
       POSTGRES_USER: goatsync
       POSTGRES_PASSWORD: ${DB_PASSWORD:-goatsync}
@@ -41,15 +48,13 @@ services:
   # GOATSYNC - Main EteSync-compatible server
   # ═══════════════════════════════════════════════════════════
   goatsync:
-    # Use ghcr.io image (latest will be available after workflow update)
-    # For now using 'main' tag: ghcr.io/jollysleeper/goatsync:main
-    image: ghcr.io/jollysleeper/goatsync:main
-    # Or build locally:
-    # build: .
+    image: ghcr.io/jollysleeper/goatsync:latest
+    # Or build locally: build: .
     container_name: goatsync
     restart: unless-stopped
+    env_file: .env
     ports:
-      - "3735:3735"
+      - "${PORT:-3735}:3735"
     environment:
       DATABASE_URL: postgres://goatsync:${DB_PASSWORD:-goatsync}@postgres:5432/goatsync?sslmode=disable
       SECRET_KEY: ${SECRET_KEY:-change_this_to_a_secure_32_char_key}
