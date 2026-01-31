@@ -46,7 +46,7 @@ type ModifyAccessLevelRequest struct {
 func ListMembers(context *gin.Context) {
 	limit := 50
 	if limitParam := context.Query("limit"); limitParam != "" {
-		fmt.Sscanf(limitParam, "%d", &limit)
+		_, _ = fmt.Sscanf(limitParam, "%d", &limit)
 	}
 	iterator := context.Query("iterator")
 

@@ -51,7 +51,7 @@ func HandleWebSocket(c *gin.Context) {
 }
 
 func handleWebSocketConnection(conn *WSConnection) {
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	for {
 		messageType, message, err := conn.ReadMessage()

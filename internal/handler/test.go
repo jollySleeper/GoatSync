@@ -53,9 +53,8 @@ func (h *TestHandler) Reset(c *gin.Context) {
 	}
 
 	for _, table := range tables {
-		if err := h.db.Exec("DELETE FROM " + table).Error; err != nil {
-			// Log but continue - table might not exist
-		}
+		// Ignore errors - table might not exist
+		_ = h.db.Exec("DELETE FROM " + table).Error
 	}
 
 	c.JSON(http.StatusOK, ResetResponse{Status: "reset"})

@@ -50,7 +50,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// Run migrations
-	database.AutoMigrate(db,
+	_ = database.AutoMigrate(db,
 		&model.Stoken{},
 		&model.User{},
 		&model.UserInfo{},
@@ -133,7 +133,7 @@ func TestIsEtebase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -150,7 +150,7 @@ func TestHealthEndpoints(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Request failed: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			if resp.StatusCode != http.StatusOK {
 				t.Errorf("Expected status 200 for %s, got %d", endpoint, resp.StatusCode)
@@ -175,7 +175,7 @@ func TestSignupFlow(t *testing.T) {
 
 	// Create signup request
 	salt := make([]byte, 16)
-	rand.Read(salt)
+	_, _ = rand.Read(salt)
 
 	signupReq := map[string]interface{}{
 		"user": map[string]interface{}{
@@ -201,7 +201,7 @@ func TestSignupFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Signup request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		t.Errorf("Expected status 200/201, got %d", resp.StatusCode)
@@ -234,7 +234,7 @@ func TestLoginChallengeFlow(t *testing.T) {
 	}
 
 	salt := make([]byte, 16)
-	rand.Read(salt)
+	_, _ = rand.Read(salt)
 	username := "logintest_" + hex.EncodeToString(salt[:4])
 
 	// Create user via signup
@@ -496,7 +496,7 @@ func BenchmarkKeyDerivation(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		etebase.GetEncryptionKey(salt)
+		_, _ = etebase.GetEncryptionKey(salt)
 	}
 }
 
@@ -506,11 +506,11 @@ func BenchmarkEncryption(b *testing.B) {
 	salt := []byte("0123456789abcdef")
 	key, _ := etebase.GetEncryptionKey(salt)
 	plaintext := make([]byte, 1024) // 1KB
-	rand.Read(plaintext)
+	_, _ = rand.Read(plaintext)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		etebase.Encrypt(key, plaintext)
+		_, _ = etebase.Encrypt(key, plaintext)
 	}
 }
 

@@ -92,7 +92,7 @@ func (c *Client) Subscribe(ctx context.Context, channel string) (<-chan []byte, 
 	}()
 
 	cleanup := func() {
-		pubsub.Close()
+		_ = pubsub.Close()
 	}
 
 	return msgChan, cleanup
@@ -115,7 +115,7 @@ func (c *Client) GetAndDeleteTicket(ctx context.Context, ticket string) (uint, e
 	}
 
 	// Delete ticket (one-time use)
-	c.Delete(ctx, key)
+	_ = c.Delete(ctx, key)
 
 	return uint(val[0]), nil
 }

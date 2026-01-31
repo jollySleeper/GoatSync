@@ -36,7 +36,7 @@ func TestFileStorage_SaveAndLoad(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	fs := NewFileStorage(tempDir)
 
@@ -84,7 +84,7 @@ func TestFileStorage_LoadNonExistent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	fs := NewFileStorage(tempDir)
 
@@ -103,7 +103,7 @@ func TestFileStorage_DirectoryCreation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	fs := NewFileStorage(tempDir)
 

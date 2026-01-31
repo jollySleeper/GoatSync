@@ -125,7 +125,11 @@ func (h *WebSocketHandler) Handle(c *gin.Context) {
 		log.Printf("WebSocket upgrade error: %v", err)
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Printf("WebSocket close error: %v", err)
+		}
+	}()
 
 	// Handle connection
 	h.handleConnection(c.Request.Context(), conn, ticket)
@@ -133,10 +137,9 @@ func (h *WebSocketHandler) Handle(c *gin.Context) {
 
 func (h *WebSocketHandler) handleConnection(ctx context.Context, conn *websocket.Conn, ticket *Ticket) {
 	// Set up ping/pong
-	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	_ = conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	conn.SetPongHandler(func(string) error {
-		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
-		return nil
+		return conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	})
 
 	// Subscribe to Redis channel if available
@@ -188,7 +191,7 @@ func (h *WebSocketHandler) handleConnection(ctx context.Context, conn *websocket
 
 func generateTicketID() string {
 	b := make([]byte, 16)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
 }
 

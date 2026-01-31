@@ -95,7 +95,7 @@ func (s *FileStorage) SaveChunkFromReader(userID uint, collectionUID, chunkUID s
 	if err != nil {
 		return fmt.Errorf("failed to create chunk file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Copy data
 	if _, err := io.Copy(file, reader); err != nil {

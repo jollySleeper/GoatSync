@@ -186,7 +186,9 @@ func main() {
 	if db != nil {
 		sqlDB, err := db.DB()
 		if err == nil {
-			sqlDB.Close()
+			if closeErr := sqlDB.Close(); closeErr != nil {
+				log.Printf("Database close error: %v", closeErr)
+			}
 		}
 	}
 
