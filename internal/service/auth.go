@@ -210,16 +210,9 @@ func (s *AuthService) validateLoginRequest(
 	}
 
 	// Validate timestamp (challenge expiry)
-	timestamp, ok := challengeData["timestamp"].(int64)
+	timestamp, ok := toInt64(challengeData["timestamp"])
 	if !ok {
-		// Try float64 (msgpack sometimes decodes as float)
-		if ts, ok := challengeData["timestamp"].(float64); ok {
-			timestamp = int64(ts)
-		} else if ts, ok := challengeData["timestamp"].(uint64); ok {
-			timestamp = int64(ts)
-		} else {
-			return pkgerrors.ErrInvalidRequest.WithDetail("Invalid timestamp in challenge")
-		}
+		return pkgerrors.ErrInvalidRequest.WithDetail("Invalid timestamp in challenge")
 	}
 
 	now := time.Now().Unix()
@@ -228,15 +221,9 @@ func (s *AuthService) validateLoginRequest(
 	}
 
 	// Validate userId
-	userID, ok := challengeData["userId"].(uint64)
+	userID, ok := toUint64(challengeData["userId"])
 	if !ok {
-		if id, ok := challengeData["userId"].(int64); ok {
-			userID = uint64(id)
-		} else if id, ok := challengeData["userId"].(float64); ok {
-			userID = uint64(id)
-		} else {
-			return pkgerrors.ErrInvalidRequest.WithDetail("Invalid userId in challenge")
-		}
+		return pkgerrors.ErrInvalidRequest.WithDetail("Invalid userId in challenge")
 	}
 
 	if uint(userID) != user.ID {
@@ -398,5 +385,51 @@ func (s *AuthService) GetUserByToken(ctx context.Context, tokenKey string) (*mod
 	}
 
 	return token.User, nil
+}
+
+// toInt64 converts a msgpack-decoded value to int64.
+// msgpack may decode integers as various types depending on value size.
+func toInt64(v interface{}) (int64, bool) {
+	switch n := v.(type) {
+	case int64:
+		return n, true
+	case int32:
+		return int64(n), true
+	case int:
+		return int64(n), true
+	case uint64:
+		return int64(n), true
+	case uint32:
+		return int64(n), true
+	case uint:
+		return int64(n), true
+	case float64:
+		return int64(n), true
+	default:
+		return 0, false
+	}
+}
+
+// toUint64 converts a msgpack-decoded value to uint64.
+// msgpack may decode integers as various types depending on value size.
+func toUint64(v interface{}) (uint64, bool) {
+	switch n := v.(type) {
+	case uint64:
+		return n, true
+	case uint32:
+		return uint64(n), true
+	case uint:
+		return uint64(n), true
+	case int64:
+		return uint64(n), true
+	case int32:
+		return uint64(n), true
+	case int:
+		return uint64(n), true
+	case float64:
+		return uint64(n), true
+	default:
+		return 0, false
+	}
 }
 
