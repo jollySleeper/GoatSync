@@ -57,3 +57,42 @@ refactor(model)!: rename Collection.MainItem to MainItemID
 
 BREAKING CHANGE: Collection model field renamed.
 ```
+
+## Releases and Tags
+
+**Before creating a version tag:**
+
+1. **Update CHANGELOG** - Add a new section in `docs/CHANGELOG.md` with:
+   - Version number and date
+   - Added/Changed/Fixed/Removed sections as appropriate
+   - Any upgrade notes for users
+
+2. **Commit the CHANGELOG** - Create a commit like:
+   ```bash
+   git commit -m "docs: update CHANGELOG for v0.x.x release"
+   ```
+
+3. **Create the tag** - Use annotated tags with release notes:
+   ```bash
+   git tag -a v0.x.x -m "v0.x.x - Brief description"
+   git push origin v0.x.x
+   ```
+
+**Tag format:**
+- Use semantic versioning: `v{major}.{minor}.{patch}`
+- Pre-releases: `v0.2.0-alpha`, `v0.2.0-beta`, `v0.2.0-rc1`
+
+**Example workflow:**
+```bash
+# 1. Update CHANGELOG
+# 2. Commit CHANGELOG
+git add docs/CHANGELOG.md
+git commit -m "docs: update CHANGELOG for v0.2.0 release"
+
+# 3. Push commit
+git push origin main
+
+# 4. Create and push tag
+git tag -a v0.2.0 -m "v0.2.0 - Feature description"
+git push origin v0.2.0
+```
