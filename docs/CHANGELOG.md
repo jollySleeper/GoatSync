@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.3] - 2026-02-01
+
+### Fixed
+- 🐛 Login fails with "Invalid userId in Challenge" after signup
+  - Msgpack decodes small integers (like userId=1) as `uint32`, but validation only checked for `uint64`
+  - Added `toInt64()` and `toUint64()` helper functions to handle all integer types msgpack may return
+
+---
+
 ## [0.1.2] - 2026-02-01
 
 ### Changed
