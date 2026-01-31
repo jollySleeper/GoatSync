@@ -17,7 +17,7 @@ A **Go implementation of the EteSync server** with 100% API compatibility.
 - **🔄 Real-time Sync** - WebSocket support with Redis pub/sub
 - **🐳 Docker Ready** - One-command deployment with multi-arch support
 
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
 # Clone and configure
@@ -40,7 +40,7 @@ For CalDAV/CardDAV support (Thunderbird, Apple Calendar, etc.):
 docker compose -f docker-compose-full.yml up -d
 ```
 
-## Configuration
+## ⚙️ Configuration
 
 See [.env.example](.env.example) for all options.
 
@@ -52,16 +52,16 @@ See [.env.example](.env.example) for all options.
 | `REDIS_URL` | No | - | Redis for WebSocket sync |
 | `DEBUG` | No | `false` | Debug mode |
 
-## Docker Images
+## 🐳 Docker Images
 
 ```bash
 docker pull ghcr.io/jollysleeper/goatsync:latest
-docker pull ghcr.io/jollysleeper/goatsync:0.1.1
+docker pull ghcr.io/jollysleeper/goatsync:0.1.2
 ```
 
 Platforms: `linux/amd64`, `linux/arm64`
 
-## Documentation
+## 📚 Documentation
 
 | Document | Description |
 |----------|-------------|
@@ -70,7 +70,7 @@ Platforms: `linux/amd64`, `linux/arm64`
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Technical details |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | Version history |
 
-## API Endpoints
+## 🔌 API Endpoints
 
 Implements all EteSync API endpoints:
 - Authentication (signup, login, logout)
@@ -80,14 +80,14 @@ Implements all EteSync API endpoints:
 - Chunks (binary data)
 - WebSocket (real-time sync)
 
-## Security
+## 🔒 Security
 
 Same cryptographic protocols as EteSync:
 - **BLAKE2b-256** - Key derivation
 - **XSalsa20-Poly1305** - NaCl SecretBox encryption
 - **Ed25519** - Signature verification
 
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -98,7 +98,7 @@ Same cryptographic protocols as EteSync:
 
 This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
 - [EteSync](https://github.com/etesync) - Original Python implementation
 - [Gin](https://gin-gonic.com/) - HTTP framework

@@ -10,9 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.2] - 2026-02-01
 
 ### Changed
-- Cleaned up README.md for better readability
-- Removed unused `MEDIA_ROOT` and `STATIC_ROOT` config options
-- Updated `.env.example` with clearer documentation for `CHUNK_STORAGE_PATH`
+- 🎨 Restored emojis to README.md section headers for better visual appeal
+- 🧹 Cleaned up README.md for better readability
+- 🗑️ Removed unused `MEDIA_ROOT` and `STATIC_ROOT` config options from codebase
+- 📝 Updated `.env.example` with clearer documentation for `CHUNK_STORAGE_PATH`
+- 📋 Added release workflow documentation to commit conventions (`.cursor/rules/08-commits.mdc`)
 
 ### Notes
 - `CHUNK_STORAGE_PATH` is the only storage path used - stores encrypted binary data
