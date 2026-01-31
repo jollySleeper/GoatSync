@@ -51,9 +51,9 @@ func Load() *Config {
 
 	c := &Config{
 		// Server
-		Port:    getEnv("PORT", "8080"),
-		Debug:   getEnvBool("DEBUG", true),
-		GinMode: getEnv("GIN_MODE", "debug"),
+		Port:    getEnv("PORT", "3735"),
+		Debug:   getEnvBool("DEBUG", false),
+		GinMode: getEnv("GIN_MODE", "release"),
 
 		// Security
 		EncryptionSecret: getEnv("ENCRYPTION_SECRET", ""),

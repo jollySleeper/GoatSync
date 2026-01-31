@@ -57,7 +57,7 @@ jobs:
         env:
           DATABASE_URL: postgres://goatsync:goatsync@localhost:5432/goatsync?sslmode=disable
           REDIS_URL: redis://localhost:6379/0
-          SECRET_KEY: test-secret-key-for-ci-testing-32ch
+          ENCRYPTION_SECRET: test-secret-key-for-ci-testing-32ch
         run: go test -v ./internal/integration/...
 
       - name: Upload coverage

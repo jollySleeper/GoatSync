@@ -50,7 +50,7 @@ EXPOSE 3735
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-3735}/health || exit 1
 
-# Set environment defaults
+# Environment defaults (PORT matches EXPOSE and HEALTHCHECK default)
 ENV PORT=3735 \
     CHUNK_STORAGE_PATH=/data/chunks
 

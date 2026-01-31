@@ -29,11 +29,10 @@ curl -O https://raw.githubusercontent.com/jollySleeper/GoatSync/main/.env.exampl
 # Copy example environment file
 cp .env.example .env
 
-# Generate secure passwords
-echo "DB_PASSWORD=$(openssl rand -base64 16)" >> .env
-echo "SECRET_KEY=$(openssl rand -base64 32)" >> .env
+# Generate secure values and update .env
+# Edit DATABASE_URL with a secure password
+# Edit ENCRYPTION_SECRET with: openssl rand -base64 32
 
-# Edit to customize (or leave defaults)
 nano .env
 
 # Secure the file
@@ -84,19 +83,22 @@ Use this if you want to use Thunderbird, Apple Calendar, Evolution, or any CalDA
 
 ## Configuration Reference
 
+See [.env.example](../.env.example) for all configuration options with detailed comments.
+
 ### Required Variables
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `DB_PASSWORD` | PostgreSQL password | `MySecurePass123!` |
-| `SECRET_KEY` | Encryption secret (min 32 chars) | `$(openssl rand -base64 32)` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgres://user:pass@host:5432/db` |
+| `ENCRYPTION_SECRET` | Encryption key (min 32 chars) | `$(openssl rand -base64 32)` |
 
 ### Optional Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DEBUG` | `false` | Enable debug logging |
 | `PORT` | `3735` | GoatSync server port |
+| `DEBUG` | `false` | Enable debug logging |
+| `REDIS_URL` | - | Redis for WebSocket pub/sub |
 | `GIN_MODE` | `release` | Gin framework mode |
 | `CHALLENGE_VALID_SECONDS` | `300` | Login challenge validity |
 | `ALLOWED_ORIGINS` | `*` | CORS origins (comma-separated) |

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.1] - 2026-02-01
+
+### Fixed
+- Environment variable renamed from `SECRET_KEY` to `ENCRYPTION_SECRET` to match actual code
+- Default PORT changed from 8080 to 3735 in config.go
+- Default DEBUG changed to false and GIN_MODE to release for production defaults
+- Updated all documentation to reference `.env.example` for configuration
+
+### Changed
+- `.env.example` now contains complete list of all environment variables with descriptions
+- Docker compose files now use `ENCRYPTION_SECRET` instead of `SECRET_KEY`
+
+---
+
 ## [0.1.0] - 2026-01-31
 
 ### 🚀 First Public Release

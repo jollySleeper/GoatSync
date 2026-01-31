@@ -24,9 +24,9 @@ go build -o goatsync ./cmd/server
 ### 3. Run GoatSync
 
 ```bash
-# Set environment variables
+# Set environment variables (see .env.example for all options)
 export DATABASE_URL="postgres://goatsync:goatsync@localhost:5432/goatsync?sslmode=disable"
-export SECRET_KEY="your-secret-key-at-least-32-characters-long"
+export ENCRYPTION_SECRET="your-secret-key-at-least-32-characters-long"
 export REDIS_URL="redis://localhost:6379/0"
 export DEBUG=true
 export PORT=3735
@@ -51,14 +51,16 @@ curl http://localhost:3735/api/v1/authentication/is_etebase/
 
 ## Environment Variables
 
+See [.env.example](../.env.example) for all configuration options with detailed comments.
+
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `DATABASE_URL` | Yes | - | PostgreSQL connection string |
-| `SECRET_KEY` | Yes | - | Encryption key (min 32 chars) |
+| `ENCRYPTION_SECRET` | Yes | - | Encryption key (min 32 chars) |
 | `REDIS_URL` | No | - | Redis URL for WebSocket pub/sub |
-| `PORT` | No | `8080` | HTTP server port |
+| `PORT` | No | `3735` | HTTP server port |
 | `DEBUG` | No | `false` | Enable debug mode |
-| `CHUNK_STORAGE_PATH` | No | `/tmp/goatsync/chunks` | Chunk file storage path |
+| `CHUNK_STORAGE_PATH` | No | `./data/chunks` | Chunk file storage path |
 | `ALLOWED_ORIGINS` | No | `*` | CORS allowed origins (comma-separated) |
 
 ---
@@ -96,7 +98,7 @@ services:
       - "3735:3735"
     environment:
       DATABASE_URL: postgres://goatsync:goatsync@postgres:5432/goatsync?sslmode=disable
-      SECRET_KEY: your-secret-key-at-least-32-characters-long
+      ENCRYPTION_SECRET: your-secret-key-at-least-32-characters-long
       REDIS_URL: redis://redis:6379/0
       PORT: "3735"
       DEBUG: "true"

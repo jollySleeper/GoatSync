@@ -57,9 +57,9 @@ services:
       - "${PORT:-3735}:3735"
     environment:
       DATABASE_URL: postgres://goatsync:${DB_PASSWORD:-goatsync}@postgres:5432/goatsync?sslmode=disable
-      SECRET_KEY: ${SECRET_KEY:-change_this_to_a_secure_32_char_key}
+      ENCRYPTION_SECRET: ${ENCRYPTION_SECRET:-change_this_to_a_secure_32_char_key}
       REDIS_URL: redis://redis:6379/0
-      PORT: "3735"
+      PORT: "${PORT:-3735}"
       DEBUG: "${DEBUG:-false}"
     volumes:
       - chunk_data:/data/chunks

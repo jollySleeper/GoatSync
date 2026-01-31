@@ -50,7 +50,7 @@ docker compose up -d postgres redis
 # Build and run
 go build -o goatsync ./cmd/server
 DATABASE_URL="postgres://goatsync:goatsync@localhost:5432/goatsync?sslmode=disable" \
-SECRET_KEY="your-secret-key-at-least-32-characters" \
+ENCRYPTION_SECRET="your-secret-key-at-least-32-characters" \
 ./goatsync
 ```
 
@@ -71,7 +71,7 @@ See [.env.example](.env.example) for all configuration options.
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `DATABASE_URL` | Yes | - | PostgreSQL connection string |
-| `SECRET_KEY` | Yes | - | Encryption key (min 32 chars) |
+| `ENCRYPTION_SECRET` | Yes | - | Encryption key (min 32 chars) |
 | `PORT` | No | `3735` | HTTP server port |
 | `REDIS_URL` | No | - | Redis for WebSocket pub/sub |
 | `DEBUG` | No | `false` | Enable debug mode |
