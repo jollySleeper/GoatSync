@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strings"
 
 	"goatsync/internal/codec"
 	"goatsync/internal/service"
@@ -20,10 +21,17 @@ func respondError(c *gin.Context, err *pkgerrors.EtebaseError) {
 // and sets the user in the context
 func RequireAuth(authService *service.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenKey := c.GetHeader("Authorization")
-		if tokenKey == "" {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
 			respondError(c, pkgerrors.ErrInvalidToken)
 			return
+		}
+
+		// Strip "Token " prefix from Authorization header
+		// Client sends: "Token <key>" but we store just "<key>" in the database
+		tokenKey := authHeader
+		if strings.HasPrefix(authHeader, "Token ") {
+			tokenKey = strings.TrimPrefix(authHeader, "Token ")
 		}
 
 		user, err := authService.GetUserByToken(c.Request.Context(), tokenKey)
@@ -42,6 +50,7 @@ func RequireAuth(authService *service.AuthService) gin.HandlerFunc {
 		}
 
 		// Set user and token in context for use by handlers
+		// Store the raw token key (without "Token " prefix)
 		c.Set("user", user)
 		c.Set("token", tokenKey)
 
