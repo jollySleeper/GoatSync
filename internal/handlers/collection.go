@@ -501,12 +501,7 @@ func GetItemRevisions(context *gin.Context) {
 	// Convert to ItemRevisionOut
 	revisionData := make([]ItemRevisionOut, len(revisions))
 	for i, rev := range revisions {
-		revisionData[i] = ItemRevisionOut{
-			UID:     rev.UID,
-			Meta:    rev.Meta,
-			Deleted: rev.Deleted,
-			Chunks:  rev.Chunks,
-		}
+		revisionData[i] = ItemRevisionOut(rev)
 	}
 
 	// Get next iterator

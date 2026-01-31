@@ -258,7 +258,7 @@ func TestLoginChallengeFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Signup failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Now test login challenge
 	challengeReq := map[string]interface{}{
@@ -274,7 +274,7 @@ func TestLoginChallengeFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Login challenge failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -315,7 +315,7 @@ func TestUnauthorizedAccess(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Request failed: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			if resp.StatusCode != http.StatusUnauthorized {
 				t.Errorf("Expected status 401, got %d", resp.StatusCode)
