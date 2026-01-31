@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.2] - 2026-02-01
+
+### Changed
+- Cleaned up README.md for better readability
+- Removed unused `MEDIA_ROOT` and `STATIC_ROOT` config options
+- Updated `.env.example` with clearer documentation for `CHUNK_STORAGE_PATH`
+
+### Notes
+- `CHUNK_STORAGE_PATH` is the only storage path used - stores encrypted binary data
+- Docker volume `chunk_data` is already configured in docker-compose files
+
+---
+
 ## [0.1.1] - 2026-02-01
 
 ### Fixed

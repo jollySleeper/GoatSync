@@ -23,9 +23,7 @@ type Config struct {
 	ChallengeValidSeconds int // How long login challenges are valid (default: 300)
 
 	// Storage
-	MediaRoot        string // Root directory for media files
-	StaticRoot       string // Root directory for static files
-	ChunkStoragePath string // Root directory for chunk files
+	ChunkStoragePath string // Root directory for encrypted chunk files
 
 	// Database
 	DatabaseURL string // PostgreSQL connection string
@@ -64,8 +62,6 @@ func Load() *Config {
 		ChallengeValidSeconds: getEnvInt("CHALLENGE_VALID_SECONDS", 300),
 
 		// Storage
-		MediaRoot:        getEnv("MEDIA_ROOT", "./media"),
-		StaticRoot:       getEnv("STATIC_ROOT", "./static"),
 		ChunkStoragePath: getEnv("CHUNK_STORAGE_PATH", "./data/chunks"),
 
 		// Database
