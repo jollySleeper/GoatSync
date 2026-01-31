@@ -4,13 +4,12 @@ GoatSync is a **Go implementation of the EteSync server** with 100% API compatib
 
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://golang.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Docker](https://img.shields.io/badge/Docker-ghcr.io-blue?logo=docker)](https://github.com/jollySleeper/GoatSync/pkgs/container/goatsync)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-316192?style=flat&logo=postgresql)](https://www.postgresql.org/)
 
-> **Status: ✅ Production Ready (v1.0.0)**
+> **Status: ✅ Production Ready (v0.1.0)**
 >
 > Fully compatible with all EteSync clients (web, iOS, Android, etesync-dav).
-
-![GoatSync](./screenshot.png)
 
 ## ✨ Features
 
@@ -19,49 +18,61 @@ GoatSync is a **Go implementation of the EteSync server** with 100% API compatib
 - **⚡ High Performance** - Built with Go + Gin for maximum throughput
 - **🐘 PostgreSQL** - Production-grade database with GORM
 - **🔄 Real-time Sync** - WebSocket support with Redis pub/sub
-- **🐳 Docker Ready** - One-command deployment
+- **🐳 Docker Ready** - One-command deployment with multi-arch support
 
 ## 🚀 Quick Start
 
-### 1. Start Dependencies
+### Option 1: Docker (Recommended)
 
 ```bash
+# Clone repository
+git clone https://github.com/jollySleeper/GoatSync.git
+cd GoatSync
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your settings
+
+# Start all services
 docker compose up -d
+
+# Verify
+curl http://localhost:3735/health
+# {"status":"ok"}
 ```
 
-### 2. Build & Run
+### Option 2: Build from Source
 
 ```bash
-go build -o goatsync ./cmd/server
+# Start dependencies
+docker compose up -d postgres redis
 
+# Build and run
+go build -o goatsync ./cmd/server
 DATABASE_URL="postgres://goatsync:goatsync@localhost:5432/goatsync?sslmode=disable" \
 SECRET_KEY="your-secret-key-at-least-32-characters" \
 ./goatsync
-```
-
-### 3. Verify
-
-```bash
-curl http://localhost:3735/health
-# {"status":"ok"}
 ```
 
 ## 📖 Documentation
 
 | Document | Description |
 |----------|-------------|
-| [docs/RUNNING.md](docs/RUNNING.md) | Complete guide to running GoatSync |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Complete deployment guide with Docker |
+| [docs/RUNNING.md](docs/RUNNING.md) | Running GoatSync locally |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | Version history and features |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Technical architecture details |
 | [docs/COMPARISON.md](docs/COMPARISON.md) | EteSync vs GoatSync comparison |
 
 ## ⚙️ Configuration
 
+See [.env.example](.env.example) for all configuration options.
+
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `DATABASE_URL` | Yes | - | PostgreSQL connection string |
 | `SECRET_KEY` | Yes | - | Encryption key (min 32 chars) |
-| `PORT` | No | `8080` | HTTP server port |
+| `PORT` | No | `3735` | HTTP server port |
 | `REDIS_URL` | No | - | Redis for WebSocket pub/sub |
 | `DEBUG` | No | `false` | Enable debug mode |
 
@@ -90,37 +101,37 @@ docker compose up -d
 go test ./internal/integration/... -v
 ```
 
-## 🐳 Docker Deployment
+## 🐳 Docker
 
-```yaml
-# docker-compose.yml
-services:
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: goatsync
-      POSTGRES_PASSWORD: goatsync
-      POSTGRES_DB: goatsync
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+### Docker Images
 
-  redis:
-    image: redis:7-alpine
+Official images are published to GitHub Container Registry:
 
-  goatsync:
-    build: .
-    ports:
-      - "3735:3735"
-    environment:
-      DATABASE_URL: postgres://goatsync:goatsync@postgres:5432/goatsync?sslmode=disable
-      SECRET_KEY: your-secret-key-at-least-32-characters
-      REDIS_URL: redis://redis:6379/0
-    depends_on:
-      - postgres
-      - redis
+```bash
+# Latest stable release
+docker pull ghcr.io/jollysleeper/goatsync:latest
 
-volumes:
-  postgres_data:
+# Specific version
+docker pull ghcr.io/jollysleeper/goatsync:0.1.0
+```
+
+**Supported platforms:** `linux/amd64`, `linux/arm64`
+
+### Docker Compose
+
+Two compose files are provided:
+
+| File | Description |
+|------|-------------|
+| `docker-compose.yml` | GoatSync + PostgreSQL + Redis |
+| `docker-compose-full.yml` | Above + EteSync-DAV for CalDAV/CardDAV |
+
+```bash
+# Standard deployment
+docker compose up -d
+
+# With CalDAV/CardDAV support (for Thunderbird, Apple Calendar, etc.)
+docker compose -f docker-compose-full.yml up -d
 ```
 
 ## 🏗️ Architecture

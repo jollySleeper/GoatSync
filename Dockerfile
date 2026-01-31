@@ -1,6 +1,10 @@
 # Build stage
 FROM golang:1.25-alpine AS builder
 
+# Build arguments for version info
+ARG VERSION=dev
+ARG COMMIT=unknown
+
 WORKDIR /app
 
 # Install build dependencies
@@ -13,14 +17,14 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build binary
+# Build binary with version info
 RUN CGO_ENABLED=0 GOOS=linux go build \
-    -ldflags="-s -w" \
+    -ldflags="-s -w -X main.Version=${VERSION} -X main.Commit=${COMMIT}" \
     -o /goatsync \
     ./cmd/server
 
-# Final stage
-FROM alpine:3.19
+# Final stage - using latest Alpine 3.21 (supported until Nov 2026)
+FROM alpine:3.21
 
 # Install runtime dependencies
 RUN apk add --no-cache ca-certificates tzdata
@@ -37,12 +41,14 @@ RUN mkdir -p /data/chunks && chown -R goatsync:goatsync /data
 # Switch to non-root user
 USER goatsync
 
-# Expose port
+# Default port (can be overridden via PORT env var)
 EXPOSE 3735
 
-# Health check
+# Health check script that uses the PORT environment variable
+# Note: The health check runs inside the container, so we use a shell
+# to expand the PORT variable at runtime
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3735/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-3735}/health || exit 1
 
 # Set environment defaults
 ENV PORT=3735 \
