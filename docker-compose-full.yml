@@ -1,6 +1,21 @@
-# GoatSync - Self-hosted EteSync/Etebase compatible server
-# Usage: docker compose up -d
-# Health check: curl http://localhost:3735/health
+# GoatSync Full Stack - With EteSync-DAV for CalDAV/CardDAV support
+# 
+# This includes etesync-dav bridge for standard calendar apps like:
+# - Apple Calendar/Contacts
+# - Thunderbird
+# - GNOME Evolution
+# - Any CalDAV/CardDAV compatible app
+#
+# Usage: docker compose -f docker-compose-full.yml up -d
+# 
+# Endpoints:
+#   - GoatSync API:    http://localhost:3735 (for EteSync apps)
+#   - EteSync-DAV:     http://localhost:37358 (for standard calendar apps)
+#
+# Setup:
+#   1. Create account via EteSync app pointing to http://YOUR_IP:3735
+#   2. Open http://localhost:37358 to add your account to etesync-dav
+#   3. Use the generated DAV password for Thunderbird/Apple Calendar
 
 services:
   # ═══════════════════════════════════════════════════════════
@@ -23,7 +38,7 @@ services:
       retries: 5
 
   # ═══════════════════════════════════════════════════════════
-  # REDIS - For WebSocket real-time sync (optional)
+  # REDIS - For WebSocket real-time sync
   # ═══════════════════════════════════════════════════════════
   redis:
     image: redis:7-alpine
@@ -42,7 +57,6 @@ services:
   # ═══════════════════════════════════════════════════════════
   goatsync:
     # Use ghcr.io image (latest will be available after workflow update)
-    # For now using 'main' tag: ghcr.io/jollysleeper/goatsync:main
     image: ghcr.io/jollysleeper/goatsync:main
     # Or build locally:
     # build: .
@@ -70,8 +84,35 @@ services:
       retries: 3
       start_period: 10s
 
+  # ═══════════════════════════════════════════════════════════
+  # ETESYNC-DAV - CalDAV/CardDAV bridge for standard apps
+  # ═══════════════════════════════════════════════════════════
+  # Provides CalDAV/CardDAV interface for:
+  # - Apple Calendar & Contacts
+  # - Thunderbird
+  # - Evolution / GNOME Calendar
+  # - Any standard CalDAV/CardDAV client
+  #
+  # Web UI: http://localhost:37358
+  # Add your EteSync account there, then use the generated
+  # DAV password in your calendar app.
+  etesync-dav:
+    image: etesync/etesync-dav:latest
+    container_name: etesync-dav
+    restart: unless-stopped
+    ports:
+      - "37358:37358"
+    environment:
+      # Point to GoatSync (use Docker internal hostname)
+      ETESYNC_URL: http://goatsync:3735
+    volumes:
+      - dav_data:/data
+    depends_on:
+      goatsync:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   redis_data:
   chunk_data:
-
+  dav_data:
